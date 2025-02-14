@@ -48,7 +48,7 @@ public static class Solver {
             if (i < hits.Count - 1 && hit.Time == hits[i + 1].Time)
                 continue;
 
-            bool givesVibe = nextVibe < vibeTimes.Count && hit.Time >= vibeTimes[nextVibe];
+            bool givesVibe = nextVibe < vibeTimes.Count && (hit.Time >= vibeTimes[nextVibe] || i == hits.Count - 1 || vibeTimes[nextVibe] - hit.Time <= hits[i + 1].Time - vibeTimes[nextVibe]);
 
             if (givesVibe)
                 nextVibe++;
@@ -127,19 +127,23 @@ public static class Solver {
         bestScore = 0;
 
         for (int i = hits.Count - 1; i > firstVibeIndex; i--) {
-            bestScore = Math.Max(bestScore, ComputeStrategy(i, 1));
+            int oneVibeScore = ComputeStrategy(i, 1);
 
-            if (i > secondVibeIndex)
+            if (i <= secondVibeIndex)
+                bestScore = Math.Max(bestScore, oneVibeScore);
+            else
                 bestScore = Math.Max(bestScore, ComputeStrategy(i, 2));
         }
 
         var overallBestStrategies = new List<Strategy>();
 
-        for (int i = firstVibeIndex + 1; i < hits.Count; i++) {
+        for (int i = firstVibeIndex + 1; i <= secondVibeIndex && i < hits.Count; i++) {
             if (strategies[i, 0].Score == bestScore)
                 overallBestStrategies.Add(strategies[i, 0]);
+        }
 
-            if (i > secondVibeIndex && strategies[i, 1].Score == bestScore)
+        for (int i = secondVibeIndex + 1; i < hits.Count; i++) {
+            if (strategies[i, 1].Score == bestScore)
                 overallBestStrategies.Add(strategies[i, 1]);
         }
 
@@ -151,12 +155,11 @@ public static class Solver {
             int secondVibeIndex = firstVibeIndex < hits.Count ? nextVibes[firstVibeIndex + 1] : hits.Count;
             int bestNextScore = 0;
 
-            for (int i = firstVibeIndex + 1; i < hits.Count; i++) {
+            for (int i = firstVibeIndex + 1; i <= secondVibeIndex && i < hits.Count; i++)
                 bestNextScore = Math.Max(bestNextScore, strategies[i, 0].Score);
 
-                if (i > secondVibeIndex)
-                    bestNextScore = Math.Max(bestNextScore, strategies[i, 1].Score);
-            }
+            for (int i = secondVibeIndex + 1; i < hits.Count; i++)
+                bestNextScore = Math.Max(bestNextScore, strategies[i, 1].Score);
 
             for (int i = firstVibeIndex + 1; i < hits.Count; i++) {
                 if (strategies[i, 0].Score == bestNextScore)
