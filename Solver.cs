@@ -1,74 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
+using VibeOptimize;
 
 namespace RiftVibeSolver;
 
 public static class Solver {
-    private const float VIBE_LENGTH = 5f;
+    private const double VIBE_LENGTH = 5d;
 
-    public static List<VibeActivation> Solve(List<EventData> events, out int bestScore) {
-        var hits = GetHits(events);
-
-        if (hits.Count == 0) {
+    public static List<Activation> Solve(SolverData data, out int bestScore) {
+        if (data.Hits.Length == 0 || data.VibeTimes.Length == 0) {
             bestScore = 0;
 
-            return new List<VibeActivation>();
+            return new List<Activation>();
         }
 
-        int[] nextVibes = GetNextVibes(hits);
-        var activations = GetActivations(hits);
-        var strategies = GetBestStrategies(hits, activations, nextVibes, out bestScore);
+        int[] nextVibes = GetNextVibes(data);
+        var activations = GetActivations(data, nextVibes);
+        var strategies = GetBestStrategies(data, activations, nextVibes, out bestScore);
 
         return GetViableActivations(strategies);
     }
 
-    private static List<Hit> GetHits(List<EventData> events) {
-        var hits = new List<Hit>();
-        var vibeTimes = new List<float>();
-
-        foreach (var data in events) {
-            if (data.EventType == EventType.HitPoints)
-                hits.Add(new Hit(data.Time, data.Beat, data.BaseScore * data.ComboMultiplier, false));
-            else if (data.EventType == EventType.Vibe)
-                vibeTimes.Add(data.Time);
-        }
-
-        hits.Sort();
-        vibeTimes.Sort();
-
-        var newHits = new List<Hit>();
+    private static int[] GetNextVibes(SolverData data) {
+        var hits = data.Hits;
+        var vibeTimes = data.VibeTimes;
+        int[] nextVibes = new int[hits.Length];
         int nextVibe = 0;
-        int currentScore = 0;
 
-        for (int i = 0; i < hits.Count; i++) {
-            var hit = hits[i];
-
-            currentScore += hit.Score;
-
-            if (i < hits.Count - 1 && hit.Time == hits[i + 1].Time)
-                continue;
-
-            bool givesVibe = nextVibe < vibeTimes.Count && (hit.Time >= vibeTimes[nextVibe] || i == hits.Count - 1 || vibeTimes[nextVibe] - hit.Time <= hits[i + 1].Time - vibeTimes[nextVibe]);
-
-            if (givesVibe)
+        for (int i = 0; i < hits.Length; i++) {
+            while (nextVibe < vibeTimes.Length && hits[i].Timestamp.Time > vibeTimes[nextVibe].Time)
                 nextVibe++;
-
-            newHits.Add(new Hit(hit.Time, hit.Beat, currentScore, givesVibe));
-            currentScore = 0;
-        }
-
-        return newHits;
-    }
-
-    private static int[] GetNextVibes(List<Hit> hits) {
-        int[] nextVibes = new int[hits.Count + 1];
-        int nextVibe = hits.Count;
-
-        nextVibes[hits.Count] = hits.Count;
-
-        for (int i = hits.Count - 1; i >= 0; i--) {
-            if (hits[i].GivesVibe)
-                nextVibe = i;
 
             nextVibes[i] = nextVibe;
         }
@@ -76,116 +38,200 @@ public static class Solver {
         return nextVibes;
     }
 
-    private static VibeActivation[,] GetActivations(List<Hit> hits) {
-        var activations = new VibeActivation[hits.Count, 2];
-        var foundVibeTimes = new List<float>();
+    private static List<Activation> GetActivations(SolverData data, int[] nextVibes) {
+        var hits = data.Hits;
+        var vibeTimes = data.VibeTimes;
+        var singleActivationSpans = GetSpans(1);
+        var doubleActivationSpans = GetSpans(2);
+        var activations = new List<Activation>();
 
-        for (int i = 0; i < hits.Count; i++) {
-            activations[i, 0] = GetActivation(i, 1);
-            activations[i, 1] = GetActivation(i, 2);
-        }
+        AddActivations(singleActivationSpans, 1);
+        AddActivations(doubleActivationSpans, 2);
+        activations.Sort();
 
         return activations;
 
-        VibeActivation GetActivation(int hitIndex, int vibesUsed) {
-            var startHit = hits[hitIndex];
-            float endTime = startHit.Time + vibesUsed * VIBE_LENGTH;
-            int endIndex = hitIndex;
-            int totalScore = 0;
+        List<ActivationSpan> GetSpans(int vibesUsed) {
+            var spans = new List<ActivationSpan>();
 
-            while (endIndex < hits.Count && hits[endIndex].Time <= endTime) {
-                var endHit = hits[endIndex];
-
-                totalScore += endHit.Score;
-
-                if (endHit.GivesVibe) {
-                    endTime = Math.Min(endTime + VIBE_LENGTH, endHit.Time + 2f * VIBE_LENGTH);
-                    foundVibeTimes.Add(endHit.Time);
-                }
-
-                endIndex++;
+            for (int i = 0; i < hits.Length; i++) {
+                AddSpanStartingAtIndex(i);
+                AddSpansEndingAtIndex(i);
             }
 
-            float startTime = hits[endIndex - 1].Time - vibesUsed * VIBE_LENGTH;
+            spans.Sort();
 
-            for (int i = foundVibeTimes.Count - 1; i >= 0; i--)
-                startTime = Math.Max(foundVibeTimes[i] - vibesUsed * VIBE_LENGTH, startTime - VIBE_LENGTH);
+            for (int i = 0; i < spans.Count - 1;) {
+                if (spans[i].StartIndex == spans[i + 1].StartIndex && spans[i].EndIndex == spans[i + 1].EndIndex)
+                    spans.RemoveAt(i);
+                else
+                    i++;
+            }
 
-            startTime = Math.Max(hitIndex > 0 ? hits[hitIndex - 1].Time : 0f, startTime);
-            foundVibeTimes.Clear();
+            return spans;
 
-            return new VibeActivation(startHit.Beat, hits[endIndex - 1].Beat, endIndex, totalScore, vibesUsed, startHit.Time - startTime);
+            void AddSpanStartingAtIndex(int startIndex) {
+                var startHit = hits[startIndex];
+                int nextVibeIndex = GetNextVibe(nextVibes, startIndex);
+                double nextVibeTime = GetVibeTime(vibeTimes, nextVibeIndex);
+                double currentTime = startHit.Timestamp.Time;
+                double vibeRemaining = vibesUsed * VIBE_LENGTH;
+
+                while (vibeRemaining >= nextVibeTime - currentTime) {
+                    vibeRemaining = Math.Min(vibeRemaining - (nextVibeTime - currentTime) + VIBE_LENGTH, 2d * VIBE_LENGTH);
+                    currentTime = nextVibeTime;
+                    nextVibeIndex++;
+                    nextVibeTime = GetVibeTime(vibeTimes, nextVibeIndex);
+                }
+
+                double endTime = currentTime + vibeRemaining;
+                int endIndex = startIndex;
+
+                while (endIndex < hits.Length && hits[endIndex].Timestamp.Time < endTime)
+                    endIndex++;
+
+                spans.Add(new ActivationSpan(startHit.Timestamp, new Timestamp(endTime, GetBeatFromTime(data, endTime)), startIndex, endIndex));
+            }
+
+            void AddSpansEndingAtIndex(int endIndex) {
+                var endHit = hits[endIndex];
+                int previousVibeIndex = GetNextVibe(nextVibes, endIndex) - 1;
+                double previousVibeTime = GetVibeTime(vibeTimes, previousVibeIndex);
+                double currentTime = endHit.Timestamp.Time;
+                double vibeNeeded = 0f;
+                int startIndex = endIndex;
+
+                do {
+                    double startTime = currentTime - (vibesUsed * VIBE_LENGTH - vibeNeeded);
+
+                    while (startIndex > 0 && hits[startIndex - 1].Timestamp.Time >= startTime)
+                        startIndex--;
+
+                    if (startTime > previousVibeTime && startTime <= currentTime)
+                        spans.Add(new ActivationSpan(new Timestamp(startTime, GetBeatFromTime(data, startTime)), endHit.Timestamp, startIndex, endIndex));
+
+                    double minStartTime = currentTime - (2d * VIBE_LENGTH - vibeNeeded);
+
+                    if (minStartTime > previousVibeTime)
+                        break;
+
+                    vibeNeeded += currentTime - previousVibeTime - VIBE_LENGTH;
+                    currentTime = previousVibeTime;
+                    previousVibeIndex--;
+                    previousVibeTime = GetVibeTime(vibeTimes, previousVibeIndex);
+                } while (vibeNeeded > 0d);
+            }
+        }
+
+        void AddActivations(List<ActivationSpan> spans, int vibesUsed) {
+            double firstVibeTime = GetVibeTime(vibeTimes, vibesUsed - 1);
+
+            for (int i = 1; i < spans.Count; i++) {
+                var currentSpan = spans[i];
+
+                if (currentSpan.StartTime.Time <= firstVibeTime)
+                    continue;
+
+                var previousSpan = spans[i - 1];
+                int score = 0;
+
+                for (int j = currentSpan.StartIndex; j < currentSpan.EndIndex; j++)
+                    score += hits[j].Score;
+
+                activations.Add(new Activation(
+                    currentSpan.StartTime,
+                    currentSpan.EndTime,
+                    currentSpan.StartIndex,
+                    currentSpan.EndIndex,
+                    score,
+                    vibesUsed,
+                    currentSpan.StartTime.Time - previousSpan.StartTime.Time));
+            }
         }
     }
 
-    private static List<Strategy> GetBestStrategies(List<Hit> hits, VibeActivation[,] activations, int[] nextVibes, out int bestScore) {
-        int firstVibeIndex = nextVibes[0];
-        int secondVibeIndex = firstVibeIndex < hits.Count ? nextVibes[firstVibeIndex + 1] : hits.Count;
-        var strategies = new Strategy[hits.Count, 2];
+    private static List<Strategy> GetBestStrategies(SolverData data, List<Activation> activations, int[] nextVibes, out int bestScore) {
+        var vibeTimes = data.VibeTimes;
+        double secondVibeTime = GetVibeTime(vibeTimes, 1);
+        var strategies = new Strategy[activations.Count];
         var bestNextStrategies = new List<Strategy>();
 
         bestScore = 0;
 
-        for (int i = hits.Count - 1; i > firstVibeIndex; i--) {
-            int oneVibeScore = ComputeStrategy(i, 1);
+        for (int i = activations.Count - 1; i >= 0; i--) {
+            var activation = activations[i];
+            var strategy = ComputeStrategy(activation);
 
-            if (i <= secondVibeIndex)
-                bestScore = Math.Max(bestScore, oneVibeScore);
-            else
-                bestScore = Math.Max(bestScore, ComputeStrategy(i, 2));
+            strategies[i] = strategy;
+
+            if (activation.VibesUsed == (activation.StartTime.Time <= secondVibeTime ? 1 : 2))
+                bestScore = Math.Max(bestScore, strategy.Score);
         }
 
         var overallBestStrategies = new List<Strategy>();
 
-        for (int i = firstVibeIndex + 1; i <= secondVibeIndex && i < hits.Count; i++) {
-            if (strategies[i, 0].Score == bestScore)
-                overallBestStrategies.Add(strategies[i, 0]);
-        }
+        foreach (var strategy in strategies) {
+            var activation = strategy.Activation;
 
-        for (int i = secondVibeIndex + 1; i < hits.Count; i++) {
-            if (strategies[i, 1].Score == bestScore)
-                overallBestStrategies.Add(strategies[i, 1]);
+            if (activation.VibesUsed == (activation.StartTime.Time <= secondVibeTime ? 1 : 2) && strategy.Score == bestScore)
+                overallBestStrategies.Add(strategy);
         }
 
         return overallBestStrategies;
 
-        int ComputeStrategy(int hitIndex, int vibesUsed) {
-            var activation = activations[hitIndex, vibesUsed - 1];
-            int firstVibeIndex = nextVibes[activation.EndIndex];
-            int secondVibeIndex = firstVibeIndex < hits.Count ? nextVibes[firstVibeIndex + 1] : hits.Count;
+        Strategy ComputeStrategy(Activation activation) {
+            int firstVibeIndex = GetNextVibe(nextVibes, activation.EndIndex);
+            double firstVibeTime = GetVibeTime(vibeTimes, firstVibeIndex);
+            double secondVibeTime = GetVibeTime(vibeTimes, firstVibeIndex + 1);
             int bestNextScore = 0;
 
-            for (int i = firstVibeIndex + 1; i <= secondVibeIndex && i < hits.Count; i++)
-                bestNextScore = Math.Max(bestNextScore, strategies[i, 0].Score);
+            for (int i = strategies.Length - 1; i >= 0; i--) {
+                var nextStrategy = strategies[i];
 
-            for (int i = secondVibeIndex + 1; i < hits.Count; i++)
-                bestNextScore = Math.Max(bestNextScore, strategies[i, 1].Score);
+                if (nextStrategy == null)
+                    break;
 
-            for (int i = firstVibeIndex + 1; i < hits.Count; i++) {
-                if (strategies[i, 0].Score == bestNextScore)
-                    bestNextStrategies.Add(strategies[i, 0]);
+                var nextActivation = nextStrategy.Activation;
+                double startTime = nextActivation.StartTime.Time;
 
-                if (i > secondVibeIndex && strategies[i, 1].Score == bestNextScore)
-                    bestNextStrategies.Add(strategies[i, 1]);
+                if (startTime <= firstVibeTime)
+                    break;
+
+                if (nextActivation.VibesUsed == (startTime <= secondVibeTime ? 1 : 2))
+                    bestNextScore = Math.Max(bestNextScore, nextStrategy.Score);
             }
 
-            int score = activation.Score + bestNextScore;
-            var strategy = new Strategy(score, activation, bestNextStrategies.ToArray());
+            for (int i = strategies.Length - 1; i >= 0; i--) {
+                var nextStrategy = strategies[i];
+
+                if (nextStrategy == null)
+                    break;
+
+                var nextActivation = nextStrategy.Activation;
+                double startTime = nextActivation.StartTime.Time;
+
+                if (startTime <= firstVibeTime)
+                    break;
+
+                if (nextActivation.VibesUsed == (startTime <= secondVibeTime ? 1 : 2) && nextStrategy.Score == bestNextScore)
+                    bestNextStrategies.Add(nextStrategy);
+            }
+
+            var strategy = new Strategy(activation.Score + bestNextScore, activation, bestNextStrategies.ToArray());
 
             bestNextStrategies.Clear();
-            strategies[hitIndex, vibesUsed - 1] = strategy;
 
-            return score;
+            return strategy;
         }
     }
 
-    private static List<VibeActivation> GetViableActivations(List<Strategy> strategies) {
+    private static List<Activation> GetViableActivations(List<Strategy> strategies) {
         var viableStrategies = new HashSet<Strategy>();
 
         foreach (var strategy in strategies)
             Recurse(strategy);
 
-        var viableActivations = new List<VibeActivation>();
+        var viableActivations = new List<Activation>();
 
         foreach (var strategy in viableStrategies)
             viableActivations.Add(strategy.Activation);
@@ -203,5 +249,31 @@ public static class Solver {
             foreach (var nextStrategy in strategy.NextStrategies)
                 Recurse(nextStrategy);
         }
+    }
+
+    private static int GetNextVibe(int[] nextVibes, int index) => index < nextVibes.Length ? nextVibes[index] : nextVibes.Length;
+
+    private static double GetVibeTime(Timestamp[] vibeTimes, int index) {
+        if (index < 0)
+            return double.MinValue;
+
+        if (index >= vibeTimes.Length)
+            return double.MaxValue;
+
+        return vibeTimes[index].Time;
+    }
+
+    private static double GetBeatFromTime(SolverData data, double time) {
+        double[] beatTimings = data.BeatTimings;
+
+        if (beatTimings.Length <= 1)
+            return time / (60d / Mathf.Max(1, data.BPM)) + 1d;
+
+        for (int i = 0; i < beatTimings.Length - 1; i++) {
+            if (time < beatTimings[i + 1])
+                return i + 1 + (time - beatTimings[i]) / (beatTimings[i + 1] - beatTimings[i]);
+        }
+
+        return beatTimings.Length + (time - beatTimings[beatTimings.Length - 1]) / (beatTimings[beatTimings.Length - 1] - beatTimings[beatTimings.Length - 2]);
     }
 }

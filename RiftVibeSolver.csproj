@@ -58,6 +58,9 @@
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
         <Reference Include="System.Xml" />
+        <Reference Include="Unity.Mathematics">
+          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\RiftOfTheNecroDancer_Data\Managed\Unity.Mathematics.dll</HintPath>
+        </Reference>
         <Reference Include="UnityEngine">
           <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\RiftOfTheNecroDancer_Data\Managed\UnityEngine.dll</HintPath>
             <Private>false</Private>
@@ -68,15 +71,16 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
-        <Compile Include="EventData.cs" />
-        <Compile Include="EventType.cs" />
+        <Compile Include="Activation.cs" />
+        <Compile Include="ActivationSpan.cs" />
         <Compile Include="Hit.cs" />
         <Compile Include="Plugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Solver.cs" />
+        <Compile Include="SolverData.cs" />
         <Compile Include="Strategy.cs" />
+        <Compile Include="Timestamp.cs" />
         <Compile Include="Util.cs" />
-        <Compile Include="VibeActivation.cs" />
     </ItemGroup>
     <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
     <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

@@ -1,22 +1,16 @@
 ﻿using System;
+using VibeOptimize;
 
 namespace RiftVibeSolver;
 
 public readonly struct Hit : IComparable<Hit> {
-    public readonly float Time;
-
-    public readonly float Beat;
-
+    public readonly Timestamp Timestamp;
     public readonly int Score;
 
-    public readonly bool GivesVibe;
-
-    public Hit(float time, float beat, int score, bool givesVibe) {
-        Time = time;
-        Beat = beat;
+    public Hit(Timestamp timestamp, int score) {
+        Timestamp = timestamp;
         Score = score;
-        GivesVibe = givesVibe;
     }
 
-    public int CompareTo(Hit other) => Time.CompareTo(other.Time);
+    public int CompareTo(Hit other) => Timestamp.Beat.CompareTo(other.Timestamp.Beat);
 }

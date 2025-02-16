@@ -2,10 +2,10 @@
 
 public class Strategy {
     public readonly int Score;
-    public readonly VibeActivation Activation;
+    public readonly Activation Activation;
     public readonly Strategy[] NextStrategies;
 
-    public Strategy(int score, VibeActivation activation, Strategy[] nextStrategies) {
+    public Strategy(int score, Activation activation, Strategy[] nextStrategies) {
         Score = score;
         Activation = activation;
         NextStrategies = nextStrategies;
