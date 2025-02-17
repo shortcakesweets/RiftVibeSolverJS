@@ -1,4 +1,4 @@
-﻿namespace RiftVibeSolver;
+﻿namespace RiftVibeSolver.Solver;
 
 public class Strategy {
     public readonly int Score;

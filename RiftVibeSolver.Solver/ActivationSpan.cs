@@ -1,7 +1,6 @@
 ﻿using System;
-using VibeOptimize;
 
-namespace RiftVibeSolver;
+namespace RiftVibeSolver.Solver;
 
 public readonly struct ActivationSpan : IComparable<ActivationSpan> {
     public readonly Timestamp StartTime;
@@ -16,5 +15,12 @@ public readonly struct ActivationSpan : IComparable<ActivationSpan> {
         EndIndex = endIndex;
     }
 
-    public int CompareTo(ActivationSpan other) => StartTime.Time.CompareTo(other.StartTime.Time);
+    public int CompareTo(ActivationSpan other) {
+        int startComparison = StartTime.Time.CompareTo(other.StartTime.Time);
+
+        if (startComparison != 0)
+            return startComparison;
+
+        return EndTime.Time.CompareTo(other.EndTime.Time);
+    }
 }

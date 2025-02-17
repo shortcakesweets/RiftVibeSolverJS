@@ -4,22 +4,21 @@
     <PropertyGroup>
         <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
         <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-        <ProjectGuid>{48AAA9AF-5071-4F23-A2E1-262F5F2B1E5C}</ProjectGuid>
+        <ProjectGuid>{578FA7D8-2003-48BE-83D2-FA76BC25C800}</ProjectGuid>
         <OutputType>Library</OutputType>
         <AppDesignerFolder>Properties</AppDesignerFolder>
-        <RootNamespace>RiftVibeSolver</RootNamespace>
-        <AssemblyName>RiftVibeSolver</AssemblyName>
+        <RootNamespace>RiftVibeSolver.Solver</RootNamespace>
+        <AssemblyName>RiftVibeSolver.Solver</AssemblyName>
         <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
         <FileAlignment>512</FileAlignment>
         <LangVersion>latest</LangVersion>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <PlatformTarget>AnyCPU</PlatformTarget>
         <DebugSymbols>true</DebugSymbols>
         <DebugType>full</DebugType>
         <Optimize>false</Optimize>
-        <OutputPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\BepInEx\plugins\RiftVibeSolver\</OutputPath>
+        <OutputPath>bin\Debug\</OutputPath>
         <DefineConstants>DEBUG;TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
@@ -28,53 +27,21 @@
         <PlatformTarget>AnyCPU</PlatformTarget>
         <DebugType>pdbonly</DebugType>
         <Optimize>true</Optimize>
-        <OutputPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\BepInEx\plugins\RiftVibeSolver\</OutputPath>
+        <OutputPath>bin\Release\</OutputPath>
         <DefineConstants>TRACE</DefineConstants>
         <ErrorReport>prompt</ErrorReport>
         <WarningLevel>4</WarningLevel>
     </PropertyGroup>
     <ItemGroup>
-        <Reference Include="Assembly-CSharp">
-          <HintPath>libs\Assembly-CSharp_publicized.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="BepInEx">
-          <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\BepInEx\core\BepInEx.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="Mono.Cecil">
-          <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\BepInEx\core\Mono.Cecil.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="MonoMod.RuntimeDetour">
-          <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\BepInEx\core\MonoMod.RuntimeDetour.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="MonoMod.Utils">
-          <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\BepInEx\core\MonoMod.Utils.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
         <Reference Include="System.Data" />
         <Reference Include="System.Xml" />
-        <Reference Include="Unity.Mathematics">
-          <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\RiftOfTheNecroDancer_Data\Managed\Unity.Mathematics.dll</HintPath>
-        </Reference>
-        <Reference Include="UnityEngine">
-          <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\RiftOfTheNecroDancer_Data\Managed\UnityEngine.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
-        <Reference Include="UnityEngine.CoreModule">
-          <HintPath>C:\Program Files (x86)\Steam\steamapps\common\RiftOfTheNecroDancerOSTVolume1\RiftOfTheNecroDancer_Data\Managed\UnityEngine.CoreModule.dll</HintPath>
-            <Private>false</Private>
-        </Reference>
     </ItemGroup>
     <ItemGroup>
         <Compile Include="Activation.cs" />
         <Compile Include="ActivationSpan.cs" />
         <Compile Include="Hit.cs" />
-        <Compile Include="Plugin.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
         <Compile Include="Solver.cs" />
         <Compile Include="SolverData.cs" />

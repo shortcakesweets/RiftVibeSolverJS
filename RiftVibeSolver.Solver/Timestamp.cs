@@ -1,4 +1,4 @@
-﻿namespace VibeOptimize;
+﻿namespace RiftVibeSolver.Solver;
 
 public readonly struct Timestamp {
     public readonly double Time;

@@ -6,22 +6,22 @@ using BepInEx.Logging;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RhythmRift;
+using RiftVibeSolver.Solver;
 using Shared;
 using Shared.Pins;
 using Shared.RhythmEngine;
 using Shared.SceneLoading.Payloads;
-using VibeOptimize;
 
-namespace RiftVibeSolver;
+namespace RiftVibeSolver.Plugin;
 
 [BepInPlugin("programmatic.riftVibeSolver", "RiftVibeSolver", "1.1.0.0")]
 public class Plugin : BaseUnityPlugin {
     public new static ManualLogSource Logger { get; private set; }
 
     private static bool shouldRecordEvents;
-    private static Beatmap beatmap;
+    private static int bpm;
+    private static double[] beatTimings;
     private static readonly List<Hit> hits = new();
-    private static readonly List<Timestamp> vibeTimes = new();
 
     private void Awake() {
         Logger = base.Logger;
@@ -29,7 +29,65 @@ public class Plugin : BaseUnityPlugin {
 
         typeof(RRStageController).CreateMethodHook(nameof(RRStageController.BeginPlay), RRStageController_BeginPlay);
         typeof(RRStageController).CreateMethodHook(nameof(RRStageController.ShowResultsScreen), RRStageController_ShowResultsScreen);
-        typeof(RRStageController).CreateILHook(nameof(RRStageController.ProcessHitData), RRStageController_ProcessHitData_IL);
+        typeof(RRStageController).CreateILHook("ProcessHitData", RRStageController_ProcessHitData_IL);
+    }
+
+    private static List<Hit> MergeHits() {
+        var newHits = new List<Hit>();
+        int currentScore = 0;
+        bool currentGivesVibe = false;
+
+        for (int i = 0; i < hits.Count; i++) {
+            var hit = hits[i];
+
+            currentScore += hit.Score;
+            currentGivesVibe |= hit.GivesVibe;
+
+            if (i < hits.Count - 1 && hit.Timestamp.Time == hits[i + 1].Timestamp.Time)
+                continue;
+
+            newHits.Add(new Hit(hit.Timestamp, currentScore, currentGivesVibe));
+            currentScore = 0;
+            currentGivesVibe = false;
+        }
+
+        return newHits;
+    }
+
+    private static void WriteVibeData(string name, List<Hit> hits) {
+        var solverData = new SolverData(bpm, beatTimings, hits.ToArray());
+        var activations = Solver.Solver.Solve(solverData, out int score);
+        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{name}_Vibes.txt");
+        using var writer = new StreamWriter(File.Create(path));
+
+        foreach (var activation in activations)
+            writer.WriteLine(activation.ToString());
+
+        writer.WriteLine();
+        writer.WriteLine($"Total bonus score: {score}");
+        Logger.LogInfo($"Written vibe data to {path}");
+    }
+
+    private static void WriteEventData(string name, List<Hit> hits) {
+        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{name}_Events.txt");
+        using var writer = new BinaryWriter(File.Create(path));
+
+        writer.Write(bpm);
+        writer.Write(beatTimings.Length);
+
+        foreach (double time in beatTimings)
+            writer.Write(time);
+
+        writer.Write(hits.Count);
+
+        foreach (var hit in hits) {
+            writer.Write(hit.Timestamp.Time);
+            writer.Write(hit.Timestamp.Beat);
+            writer.Write(hit.Score);
+            writer.Write(hit.GivesVibe);
+        }
+
+        Logger.LogInfo($"Written event data to {path}");
     }
 
     private static void OnRecordInput(RRStageController rrStageController, RREnemyController.EnemyHitData hitData, int inputScore) {
@@ -38,15 +96,14 @@ public class Plugin : BaseUnityPlugin {
 
         var stageInputRecord = rrStageController._stageInputRecord;
         int comboMultiplier = stageInputRecord._stageScoringDefinition.GetComboMultiplier(stageInputRecord.CurrentComboCount);
+        var beatmap = rrStageController._beatmapPlayer._activeBeatmap;
 
-        beatmap ??= new Beatmap {
-            bpm = rrStageController._beatmapPlayer._activeBeatmap.bpm,
-            BeatTimings = new List<double>(rrStageController._beatmapPlayer._activeBeatmap.BeatTimings)
-        };
+        bpm = beatmap.bpm;
+        beatTimings ??= beatmap.BeatTimings.ToArray();
 
-        float time = beatmap.GetTimeFromBeatNumber(hitData.TargetBeat);
+        double time = Util.GetTimeFromBeat(bpm, beatTimings, hitData.TargetBeat);
 
-        hits.Add(new Hit(new Timestamp(time, hitData.TargetBeat), inputScore * comboMultiplier));
+        hits.Add(new Hit(new Timestamp(time, hitData.TargetBeat), inputScore * comboMultiplier, false));
 
         // Logger.LogInfo($"Gained {totalScore} points at time {time:F}, beat {targetBeatNumber:F}");
     }
@@ -55,14 +112,14 @@ public class Plugin : BaseUnityPlugin {
         if (!shouldRecordEvents)
             return;
 
-        beatmap ??= new Beatmap {
-            bpm = rrStageController._beatmapPlayer._activeBeatmap.bpm,
-            BeatTimings = new List<double>(rrStageController._beatmapPlayer._activeBeatmap.BeatTimings)
-        };
+        var beatmap = rrStageController._beatmapPlayer._activeBeatmap;
 
-        float time = beatmap.GetTimeFromBeatNumber(hitData.TargetBeat);
+        bpm = beatmap.bpm;
+        beatTimings ??= beatmap.BeatTimings.ToArray();
 
-        vibeTimes.Add(new Timestamp(time, hitData.TargetBeat));
+        double time = Util.GetTimeFromBeat(bpm, beatTimings, hitData.TargetBeat);
+
+        hits.Add(new Hit(new Timestamp(time, hitData.TargetBeat), 0, true));
 
         // Logger.LogInfo($"Gained Vibe at time {time:F}, beat {beat:F}");
     }
@@ -76,10 +133,9 @@ public class Plugin : BaseUnityPlugin {
             return;
         }
 
-        shouldRecordEvents = true;
         Logger.LogInfo($"Begin playing {rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName}");
         hits.Clear();
-        vibeTimes.Clear();
+        shouldRecordEvents = true;
     }
 
     private static void RRStageController_ShowResultsScreen(Action<RRStageController, bool, float, int, bool, bool> showResultsScreen,
@@ -91,72 +147,15 @@ public class Plugin : BaseUnityPlugin {
             return;
 
         Logger.LogInfo("Completed stage");
+        hits.Sort();
 
-        var newHits = new List<Hit>();
-        int currentScore = 0;
+        var newHits = MergeHits();
+        string name = rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName;
 
-        for (int i = 0; i < hits.Count; i++) {
-            var hit = hits[i];
-
-            currentScore += hit.Score;
-
-            if (i < hits.Count - 1 && hit.Timestamp.Time == hits[i + 1].Timestamp.Time)
-                continue;
-
-            newHits.Add(new Hit(hit.Timestamp, currentScore));
-            currentScore = 0;
-        }
+        WriteEventData(name, newHits);
+        WriteVibeData(name, newHits);
 
         hits.Clear();
-
-        var solverData = new SolverData(beatmap.bpm, beatmap.BeatTimings.ToArray(), newHits.ToArray(), vibeTimes.ToArray());
-        var activations = Solver.Solve(solverData, out int score);
-        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName}_Vibes.txt");
-        using var writer = new StreamWriter(File.Create(path));
-
-        foreach (var activation in activations)
-            writer.WriteLine(activation.ToString());
-
-        writer.WriteLine();
-        writer.WriteLine($"Total bonus score: {score}");
-        Logger.LogInfo($"Written vibe data to {path}");
-
-        // string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName}_Events.txt");
-        // using var writer = new BinaryWriter(File.Create(path));
-        //
-        // writer.Write(beatmap.bpm);
-        //
-        // var beatTimings = beatmap.BeatTimings;
-        //
-        // writer.Write(beatTimings.Count);
-        //
-        // foreach (double time in beatTimings)
-        //     writer.Write(time);
-        //
-        // hits.Sort();
-        // writer.Write(hits.Count);
-        //
-        // foreach (var hit in hits) {
-        //     writer.Write(hit.Timestamp.Time);
-        //     writer.Write(hit.Timestamp.Beat);
-        //     writer.Write(hit.Score);
-        // }
-        //
-        // vibeTimes.Sort();
-        // writer.Write(vibeTimes.Count);
-        //
-        // foreach (var timestamp in vibeTimes) {
-        //     writer.Write(timestamp.Time);
-        //     writer.Write(timestamp.Beat);
-        // }
-        //
-        // writer.Write(hits.Count);
-        //
-        // Logger.LogInfo($"Written event data to {path}");
-
-        hits.Clear();
-        vibeTimes.Clear();
-        beatmap = null;
         shouldRecordEvents = false;
     }
 

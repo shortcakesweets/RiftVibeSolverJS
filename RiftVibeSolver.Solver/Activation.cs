@@ -1,7 +1,6 @@
 ﻿using System;
-using VibeOptimize;
 
-namespace RiftVibeSolver;
+namespace RiftVibeSolver.Solver;
 
 public class Activation : IComparable<Activation> {
     public readonly Timestamp StartTime;
