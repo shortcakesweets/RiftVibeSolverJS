@@ -12,6 +12,8 @@ public class GraphicsPanel {
 
     public event Action<double, float> OnClick;
 
+    public event Action OnEnter;
+
     private double scroll;
     public double Scroll {
         get => scroll;
@@ -52,7 +54,7 @@ public class GraphicsPanel {
     private SortedDictionary<Drawable.DrawLayer, HashSet<Drawable>> layers;
     private BufferedGraphics buffer;
 
-    public GraphicsPanel(Panel panel, int paddingX, int paddingY) {
+    public GraphicsPanel(Form1 form, Panel panel, int paddingX, int paddingY) {
         this.panel = panel;
         PaddingX = paddingX;
         PaddingY = paddingY;
@@ -63,6 +65,7 @@ public class GraphicsPanel {
         panel.MouseDown += Panel_Click;
         panel.MouseWheel += Panel_MouseWheel;
         panel.Resize += Panel_Resize;
+        form.KeyDown += Form_KeyDown;
     }
 
     public void AddDrawable(Drawable drawable) {
@@ -122,7 +125,7 @@ public class GraphicsPanel {
         buffer.Render(graphics);
     }
 
-    private void Panel_Paint(object sender, PaintEventArgs e) => Program.Execute(() => Draw(e.Graphics));
+    private void Panel_Paint(object sender, PaintEventArgs e) => Draw(e.Graphics);
 
     private void Panel_Click(object sender, MouseEventArgs e) => OnClick?.Invoke(XToTime(e.X), YToValue(e.Y));
 
@@ -135,6 +138,11 @@ public class GraphicsPanel {
         }
         else
             Scroll = Math.Max(0f, Scroll + SCROLL_SENSITIVITY * Math.Sign(e.Delta) / zoomFactor);
+    }
+
+    private void Form_KeyDown(object sender, KeyEventArgs e) {
+        if (e.KeyCode == Keys.Enter)
+            OnEnter?.Invoke();
     }
 
     private void Panel_Resize(object sender, EventArgs e) {

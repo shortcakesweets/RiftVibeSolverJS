@@ -7,7 +7,8 @@ public abstract class Drawable {
         Grid,
         BarGraph,
         HitMarker,
-        LineGraph
+        LineGraph,
+        Label
     }
 
     private static int instanceCounter;

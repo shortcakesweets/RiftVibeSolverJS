@@ -56,13 +56,14 @@
         <Compile Include="PointD.cs" />
         <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
-        <Compile Include="Util.cs" />
         <Compile Include="Visualizer.cs" />
         <Compile Include="Visuals\Drawable.cs" />
         <Compile Include="Visuals\Drawables\BarGraph.cs" />
-        <Compile Include="Visuals\Drawables\Grid.cs" />
+        <Compile Include="Visuals\Drawables\BeatGrid.cs" />
         <Compile Include="Visuals\Drawables\HitMarker.cs" />
+        <Compile Include="Visuals\Drawables\Label.cs" />
         <Compile Include="Visuals\Drawables\LineGraph.cs" />
+        <Compile Include="Visuals\Drawables\OptimalActivationMarkers.cs" />
         <Compile Include="Visuals\GraphicsPanel.cs" />
         <EmbeddedResource Include="Form1.resx">
           <DependentUpon>Form1.cs</DependentUpon>

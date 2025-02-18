@@ -12,8 +12,7 @@ public class BarGraph : Drawable {
     private readonly float min;
     private readonly float max;
     private readonly Brush brush;
-
-    private IList<PointD> data;
+    private readonly IList<PointD> data;
 
     public BarGraph(float bottom, float top, float min, float max, Brush brush, IList<PointD> data) : base(data[0].X, data[data.Count - 1].X, DrawLayer.BarGraph) {
         this.bottom = bottom;
@@ -55,6 +54,4 @@ public class BarGraph : Drawable {
         if (rects.Length > 0)
             graphics.FillRectangles(brush, rects);
     }
-
-    public void SetData(IList<PointD> data) => this.data = data;
 }

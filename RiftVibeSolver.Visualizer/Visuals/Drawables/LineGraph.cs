@@ -8,8 +8,7 @@ public class LineGraph : Drawable {
     private readonly float top;
     private readonly float min;
     private readonly float max;
-
-    private IList<PointD> data;
+    private readonly IList<PointD> data;
 
     public LineGraph(float bottom, float top, float min, float max, IList<PointD> data) : base(data[0].X, data[data.Count - 1].X, DrawLayer.LineGraph) {
         this.bottom = bottom;
@@ -46,6 +45,4 @@ public class LineGraph : Drawable {
         if (points.Length > 1)
             graphics.DrawLines(Pens.Red, points);
     }
-
-    public void SetData(IList<PointD> data) => this.data = data;
 }

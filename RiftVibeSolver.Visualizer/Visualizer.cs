@@ -7,8 +7,8 @@ using RiftVibeSolver.Solver;
 namespace RiftVibeSolver.Visualizer;
 
 public class Visualizer {
-    private static readonly Brush ONE_VIBE_BRUSH = new SolidBrush(Color.FromArgb(128, Color.Lime));
-    private static readonly Brush TWO_VIBE_BRUSH = new SolidBrush(Color.FromArgb(128, Color.Cyan));
+    private static readonly Brush ONE_VIBE_BRUSH = new SolidBrush(Color.FromArgb(96, 160, 0));
+    private static readonly Brush TWO_VIBE_BRUSH = new SolidBrush(Color.FromArgb(0, 128, 128));
 
     private readonly GraphicsPanel panel;
     private readonly List<Drawable> vibePathDrawables = new();
@@ -16,6 +16,7 @@ public class Visualizer {
     public ActivationSpan? CurrentSpan { get; private set; }
 
     private readonly OpenFileDialog openFileDialog;
+    private readonly Label currentSpanLabel = new(0f, 20f, "");
 
     private SolverData data;
 
@@ -23,8 +24,12 @@ public class Visualizer {
         this.panel = panel;
         openFileDialog = new OpenFileDialog();
         panel.OnClick += (time, value) => DrawVibePath(time, value > 0.5f ? 1 : 2);
-        // LoadEvents(@"C:\Users\domia\OneDrive\Documents\Bootus Bleez_Events.txt");
+        panel.OnEnter += ShowFileDialog;
+        LoadEvents(@"C:\Users\domia\OneDrive\Documents\Bootus Bleez_Events.txt");
+        // ShowFileDialog();
+    }
 
+    private void ShowFileDialog() {
         if (openFileDialog.ShowDialog() == DialogResult.OK)
             LoadEvents(openFileDialog.FileName);
     }
@@ -35,18 +40,18 @@ public class Visualizer {
 
         vibePathDrawables.Clear();
 
-        // var spans = Solver.Solver.GetSpansEndingAt(data, time, vibesUsed);
-        //
-        // if (spans.Count > 0)
-        //     CurrentSpan = Solver.Solver.GetSpansEndingAt(data, time, vibesUsed)[0];
-        // else {
-        //     CurrentSpan = null;
-        //     panel.Redraw();
-        //
-        //     return;
-        // }
+        if (data == null)
+            return;
 
         CurrentSpan = Solver.Solver.GetSpanStartingAt(data, time, vibesUsed);
+
+        var hits = data.Hits;
+        int score = 0;
+
+        for (int i = CurrentSpan.Value.StartIndex; i < CurrentSpan.Value.EndIndex; i++)
+            score += hits[i].Score;
+
+        currentSpanLabel.SetLabel($"Beat {CurrentSpan.Value.StartTime.Beat:F}, {score} points");
 
         var path = Solver.Solver.GetVibePath(data, CurrentSpan.Value, vibesUsed);
         var points = new List<PointD>();
@@ -70,9 +75,11 @@ public class Visualizer {
 
     private void DrawEvents() {
         CurrentSpan = null;
+        currentSpanLabel.SetLabel("");
         vibePathDrawables.Clear();
         panel.Clear();
-        panel.AddDrawable(new Grid(0f, 1f, 7, 10));
+        panel.AddDrawable(currentSpanLabel);
+        panel.AddDrawable(new BeatGrid(0f, 1f, 7, 4, data.BPM, data.BeatTimings));
 
         foreach (var hit in data.Hits)
             panel.AddDrawable(new HitMarker(hit.Time.Time, 1f - hit.Score / 6660f, hit.GivesVibe, this));
@@ -86,29 +93,41 @@ public class Visualizer {
             return;
         }
 
+        var allActivations = new List<Activation>(singleVibeActivations);
         int maxScore = 0;
 
-        foreach (var activation in singleVibeActivations)
-            maxScore = Math.Max(maxScore, activation.Score);
+        allActivations.AddRange(doubleVibeActivations);
+        allActivations.Sort();
 
-        foreach (var activation in doubleVibeActivations)
+        foreach (var activation in allActivations)
             maxScore = Math.Max(maxScore, activation.Score);
 
         var points = new List<PointD>();
 
-        points.Add(new PointD(singleVibeActivations[0].StartTime.Time - singleVibeActivations[0].Tolerance, singleVibeActivations[0].Score));
-
-        for (int i = 0; i < singleVibeActivations.Count - 1; i++)
-            points.Add(new PointD(singleVibeActivations[i].StartTime.Time, singleVibeActivations[i + 1].Score));
-
-        panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, ONE_VIBE_BRUSH, points.ToArray()));
-        points.Clear();
         points.Add(new PointD(doubleVibeActivations[0].StartTime.Time - doubleVibeActivations[0].Tolerance, doubleVibeActivations[0].Score));
 
         for (int i = 0; i < doubleVibeActivations.Count - 1; i++)
             points.Add(new PointD(doubleVibeActivations[i].StartTime.Time, doubleVibeActivations[i + 1].Score));
 
         panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, TWO_VIBE_BRUSH, points.ToArray()));
+        points.Clear();
+        points.Add(new PointD(singleVibeActivations[0].StartTime.Time - singleVibeActivations[0].Tolerance, singleVibeActivations[0].Score));
+
+        for (int i = 0; i < singleVibeActivations.Count - 1; i++)
+            points.Add(new PointD(singleVibeActivations[i].StartTime.Time, singleVibeActivations[i + 1].Score));
+
+        panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, ONE_VIBE_BRUSH, points.ToArray()));
+
+        var bestActivations = Solver.Solver.GetBestActivations(data, allActivations, out int totalScore);
+
+        panel.AddDrawable(new Label(0f, 0f, $"Optimal bonus: {totalScore}"));
+
+        var pairs = new List<(PointD, double)>();
+
+        foreach (var activation in bestActivations)
+            pairs.Add((new PointD(activation.StartTime.Time, activation.Score), activation.Tolerance));
+
+        panel.AddDrawable(new OptimalActivationMarkers(1f, 0f, 0f, maxScore, pairs));
         panel.Redraw();
     }
 }

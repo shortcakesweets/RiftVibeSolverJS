@@ -6,9 +6,9 @@ namespace RiftVibeSolver.Solver;
 public static class Solver {
     private const double VIBE_LENGTH = 5d;
 
-    public static List<Activation> Solve(SolverData data, out int bestScore) {
+    public static List<Activation> Solve(SolverData data, out int totalScore) {
         if (data.Hits.Length == 0) {
-            bestScore = 0;
+            totalScore = 0;
 
             return new List<Activation>();
         }
@@ -18,7 +18,7 @@ public static class Solver {
         activations.AddRange(GetAllActivations(data, 2));
         activations.Sort();
 
-        var strategies = GetBestStrategies(data, activations, out bestScore);
+        var strategies = GetBestStrategies(data, activations, out totalScore);
 
         return GetViableActivations(strategies);
     }
@@ -29,6 +29,12 @@ public static class Solver {
         var spans = MergeSpans(forwardComputedSpans, backwardComputedSpans);
 
         return GetActivations(data, spans, vibesUsed);
+    }
+
+    public static List<Activation> GetBestActivations(SolverData data, List<Activation> activations, out int totalScore) {
+        var strategies = GetBestStrategies(data, activations, out totalScore);
+
+        return GetViableActivations(strategies);
     }
 
     public static ActivationSpan GetSpanStartingAt(SolverData data, double startTime, int vibesUsed) {
@@ -265,17 +271,13 @@ public static class Solver {
 
         bestScore = 0;
 
-        for (int i = activations.Count - 1; i >= 0; i--) {
+        for (int i = strategies.Length - 1; i >= 0; i--) {
             var activation = activations[i];
-
-            if (activation.StartIndex <= firstVibeIndex)
-                break;
-
-            var strategy = ComputeStrategy(activation);
+            var strategy = ComputeStrategy(activation, i);
 
             strategies[i] = strategy;
 
-            if (activation.VibesUsed == (i <= secondVibeIndex ? 1 : 2))
+            if (activation.VibesUsed == (activation.StartIndex <= secondVibeIndex ? 1 : 2))
                 bestScore = Math.Max(bestScore, strategy.Score);
         }
 
@@ -285,26 +287,19 @@ public static class Solver {
             var strategy = strategies[i];
             var activation = strategy.Activation;
 
-            if (activation.StartIndex <= firstVibeIndex)
-                break;
-
-            if (activation.VibesUsed == (i <= secondVibeIndex ? 1 : 2) && strategy.Score == bestScore)
+            if (activation.VibesUsed == (activation.StartIndex <= secondVibeIndex ? 1 : 2) && strategy.Score == bestScore)
                 overallBestStrategies.Add(strategy);
         }
 
         return overallBestStrategies;
 
-        Strategy ComputeStrategy(Activation activation) {
+        Strategy ComputeStrategy(Activation activation, int index) {
             int firstVibeIndex = data.GetNextVibe(activation.EndIndex);
             int secondVibeIndex = data.GetNextVibe(firstVibeIndex + 1);
             int bestNextScore = 0;
 
-            for (int i = strategies.Length - 1; i >= 0; i--) {
+            for (int i = strategies.Length - 1; i > index; i--) {
                 var nextStrategy = strategies[i];
-
-                if (nextStrategy == null)
-                    break;
-
                 var nextActivation = nextStrategy.Activation;
 
                 if (nextActivation.StartIndex <= firstVibeIndex)
@@ -314,18 +309,14 @@ public static class Solver {
                     bestNextScore = Math.Max(bestNextScore, nextStrategy.Score);
             }
 
-            for (int i = strategies.Length - 1; i >= 0; i--) {
+            for (int i = strategies.Length - 1; i > index; i--) {
                 var nextStrategy = strategies[i];
-
-                if (nextStrategy == null)
-                    break;
-
                 var nextActivation = nextStrategy.Activation;
 
                 if (nextActivation.StartIndex <= firstVibeIndex)
                     break;
 
-                if (nextStrategy.Activation.VibesUsed == (i <= secondVibeIndex ? 1 : 2) && nextStrategy.Score == bestNextScore)
+                if (nextStrategy.Activation.VibesUsed == (activation.StartIndex <= secondVibeIndex ? 1 : 2) && nextStrategy.Score == bestNextScore)
                     bestNextStrategies.Add(nextStrategy);
             }
 
