@@ -3,7 +3,7 @@
 namespace RiftVibeSolver.Visualizer;
 
 public class Label : Drawable {
-    private static readonly Brush BRUSH = new SolidBrush(Color.Cyan);
+    private static readonly Brush BRUSH = new SolidBrush(Color.White);
     private static readonly Font FONT = new("Consolas", 12);
 
     private float x;
