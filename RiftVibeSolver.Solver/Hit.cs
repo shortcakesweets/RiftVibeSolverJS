@@ -3,15 +3,15 @@
 namespace RiftVibeSolver.Solver;
 
 public readonly struct Hit : IComparable<Hit> {
-    public readonly Timestamp Timestamp;
+    public readonly Timestamp Time;
     public readonly int Score;
     public readonly bool GivesVibe;
 
-    public Hit(Timestamp timestamp, int score, bool givesVibe) {
-        Timestamp = timestamp;
+    public Hit(Timestamp time, int score, bool givesVibe) {
+        Time = time;
         Score = score;
         GivesVibe = givesVibe;
     }
 
-    public int CompareTo(Hit other) => Timestamp.Beat.CompareTo(other.Timestamp.Beat);
+    public int CompareTo(Hit other) => Time.Beat.CompareTo(other.Time.Beat);
 }

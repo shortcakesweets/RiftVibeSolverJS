@@ -1,10 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test", "Test\Test.csproj", "{AF884F6D-D87D-47AE-88A3-5D95A7CEEF8C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVibeSolver.Test", "RiftVibeSolver.Test\RiftVibeSolver.Test.csproj", "{AF884F6D-D87D-47AE-88A3-5D95A7CEEF8C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVibeSolver.Plugin", "RiftVibeSolver.Plugin\RiftVibeSolver.Plugin.csproj", "{48AAA9AF-5071-4F23-A2E1-262F5F2B1E5C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVibeSolver.Solver", "RiftVibeSolver.Solver\RiftVibeSolver.Solver.csproj", "{578FA7D8-2003-48BE-83D2-FA76BC25C800}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RiftVibeSolver.Visualizer", "RiftVibeSolver.Visualizer\RiftVibeSolver.Visualizer.csproj", "{5324AC36-560D-47B8-95FA-EBC7FD9805FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,5 +26,9 @@ Global
 		{578FA7D8-2003-48BE-83D2-FA76BC25C800}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{578FA7D8-2003-48BE-83D2-FA76BC25C800}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{578FA7D8-2003-48BE-83D2-FA76BC25C800}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5324AC36-560D-47B8-95FA-EBC7FD9805FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5324AC36-560D-47B8-95FA-EBC7FD9805FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5324AC36-560D-47B8-95FA-EBC7FD9805FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5324AC36-560D-47B8-95FA-EBC7FD9805FA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

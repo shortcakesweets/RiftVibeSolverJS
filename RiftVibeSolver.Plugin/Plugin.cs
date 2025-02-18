@@ -43,10 +43,10 @@ public class Plugin : BaseUnityPlugin {
             currentScore += hit.Score;
             currentGivesVibe |= hit.GivesVibe;
 
-            if (i < hits.Count - 1 && hit.Timestamp.Time == hits[i + 1].Timestamp.Time)
+            if (i < hits.Count - 1 && hit.Time.Time == hits[i + 1].Time.Time)
                 continue;
 
-            newHits.Add(new Hit(hit.Timestamp, currentScore, currentGivesVibe));
+            newHits.Add(new Hit(hit.Time, currentScore, currentGivesVibe));
             currentScore = 0;
             currentGivesVibe = false;
         }
@@ -54,9 +54,8 @@ public class Plugin : BaseUnityPlugin {
         return newHits;
     }
 
-    private static void WriteVibeData(string name, List<Hit> hits) {
-        var solverData = new SolverData(bpm, beatTimings, hits.ToArray());
-        var activations = Solver.Solver.Solve(solverData, out int score);
+    private static void WriteVibeData(string name, SolverData data) {
+        var activations = Solver.Solver.Solve(data, out int score);
         string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{name}_Vibes.txt");
         using var writer = new StreamWriter(File.Create(path));
 
@@ -68,25 +67,10 @@ public class Plugin : BaseUnityPlugin {
         Logger.LogInfo($"Written vibe data to {path}");
     }
 
-    private static void WriteEventData(string name, List<Hit> hits) {
-        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{name}_Events.txt");
-        using var writer = new BinaryWriter(File.Create(path));
+    private static void WriteEventData(string name, SolverData data) {
+        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), $"{name}_Events.bin");
 
-        writer.Write(bpm);
-        writer.Write(beatTimings.Length);
-
-        foreach (double time in beatTimings)
-            writer.Write(time);
-
-        writer.Write(hits.Count);
-
-        foreach (var hit in hits) {
-            writer.Write(hit.Timestamp.Time);
-            writer.Write(hit.Timestamp.Beat);
-            writer.Write(hit.Score);
-            writer.Write(hit.GivesVibe);
-        }
-
+        data.SaveToFile(path);
         Logger.LogInfo($"Written event data to {path}");
     }
 
@@ -150,10 +134,11 @@ public class Plugin : BaseUnityPlugin {
         hits.Sort();
 
         var newHits = MergeHits();
+        var data = new SolverData(bpm, beatTimings, newHits.ToArray());
         string name = rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName;
 
-        WriteEventData(name, newHits);
-        WriteVibeData(name, newHits);
+        WriteEventData(name, data);
+        WriteVibeData(name, data);
 
         hits.Clear();
         shouldRecordEvents = false;
