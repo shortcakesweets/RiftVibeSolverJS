@@ -45,7 +45,12 @@ public class OptimalActivationMarkers : Drawable {
             float width = panel.TimeToX(point.X) - startX;
             float y = panel.ValueToY(bottom + (top - bottom) * ((float) point.Y - min) / (max - min));
 
-            rects[j] = new RectangleF(startX, y, width, 10f);
+            if (width < 9f) {
+                startX -= 0.5f * (9f - width);
+                width = 9f;
+            }
+
+            rects[j] = new RectangleF(startX, y, width, 9f);
         }
 
         graphics.FillRectangles(BRUSH, rects);

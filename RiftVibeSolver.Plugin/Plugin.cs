@@ -82,8 +82,10 @@ public class Plugin : BaseUnityPlugin {
         int comboMultiplier = stageInputRecord._stageScoringDefinition.GetComboMultiplier(stageInputRecord.CurrentComboCount);
         var beatmap = rrStageController._beatmapPlayer._activeBeatmap;
 
-        bpm = beatmap.bpm;
-        beatTimings ??= beatmap.BeatTimings.ToArray();
+        if (beatmap != null) {
+            bpm = beatmap.bpm;
+            beatTimings ??= beatmap.BeatTimings.ToArray();
+        }
 
         double time = Util.GetTimeFromBeat(bpm, beatTimings, hitData.TargetBeat);
 
@@ -98,8 +100,10 @@ public class Plugin : BaseUnityPlugin {
 
         var beatmap = rrStageController._beatmapPlayer._activeBeatmap;
 
-        bpm = beatmap.bpm;
-        beatTimings ??= beatmap.BeatTimings.ToArray();
+        if (beatmap != null) {
+            bpm = beatmap.bpm;
+            beatTimings ??= beatmap.BeatTimings.ToArray();
+        }
 
         double time = Util.GetTimeFromBeat(bpm, beatTimings, hitData.TargetBeat);
 
