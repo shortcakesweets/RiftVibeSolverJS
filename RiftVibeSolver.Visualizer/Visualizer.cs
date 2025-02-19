@@ -25,8 +25,7 @@ public class Visualizer {
         openFileDialog = new OpenFileDialog();
         panel.OnClick += (time, value) => DrawVibePath(time, value > 0.5f ? 1 : 2);
         panel.OnEnter += ShowFileDialog;
-        LoadEvents(@"C:\Users\domia\OneDrive\Documents\Bootus Bleez_Events.txt");
-        // ShowFileDialog();
+        ShowFileDialog();
     }
 
     private void ShowFileDialog() {
