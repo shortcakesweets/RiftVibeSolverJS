@@ -45,4 +45,3 @@ Press Enter to load a different chart
 ## Known Issues
 
 * The solver does not account for your ability to squeeze additional hits into a Vibe activation by deliberately hitting enemies early or late
-* The solver does not account for the small amount of additional time Vibe remains active after the Vibe meter hits zero
