@@ -78,10 +78,16 @@ public class Visualizer {
         vibePathDrawables.Clear();
         panel.Clear();
         panel.AddDrawable(currentSpanLabel);
-        panel.AddDrawable(new BeatGrid(0f, 1f, 7, 4, data.BPM, data.BeatTimings));
 
-        foreach (var hit in data.Hits)
-            panel.AddDrawable(new HitMarker(hit.Time.Time, 1f - hit.Score / 6660f, hit.GivesVibe, this));
+        var beatData = data.BeatData;
+
+        panel.AddDrawable(new BeatGrid(0f, 1f, 7, 4, 60d / beatData.BPM, beatData.BeatTimings));
+
+        for (int i = 0; i < data.Hits.Length; i++) {
+            var hit = data.Hits[i];
+
+            panel.AddDrawable(new HitMarker(hit.Time.Time, 1f - hit.Score / 6660f, i, hit.GivesVibe, this));
+        }
 
         var singleVibeActivations = Solver.Solver.GetAllActivations(data, 1);
         var doubleVibeActivations = Solver.Solver.GetAllActivations(data, 2);

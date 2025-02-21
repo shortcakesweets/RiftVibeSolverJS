@@ -12,7 +12,7 @@ public class BeatGrid : Drawable {
     private readonly double beatLength;
     private readonly double[] beatTimings;
 
-    public BeatGrid(float bottom, float top, float horizontalBars, int ticksPerMajorTick, int beatLength, double[] beatTimings) : base(0d, double.PositiveInfinity, DrawLayer.Grid) {
+    public BeatGrid(float bottom, float top, float horizontalBars, int ticksPerMajorTick, double beatLength, double[] beatTimings) : base(0d, double.PositiveInfinity, DrawLayer.Grid) {
         this.top = top;
         this.bottom = bottom;
         this.horizontalBars = horizontalBars;

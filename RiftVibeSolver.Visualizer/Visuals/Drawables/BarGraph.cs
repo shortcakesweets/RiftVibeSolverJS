@@ -5,8 +5,6 @@ using System.Drawing;
 namespace RiftVibeSolver.Visualizer;
 
 public class BarGraph : Drawable {
-    private const int GAP = 1;
-
     private readonly float bottom;
     private readonly float top;
     private readonly float min;
@@ -48,7 +46,7 @@ public class BarGraph : Drawable {
             float bottomY = panel.ValueToY(bottom);
             float topY = panel.ValueToY(bottom + (top - bottom) * ((float) point.Y - min) / (max - min));
 
-            rects[j] = new RectangleF(startX, topY, Math.Max(1f, endX - startX - GAP), bottomY - topY);
+            rects[j] = new RectangleF(startX, topY, Math.Max(1f, endX - startX), bottomY - topY);
         }
 
         if (rects.Length > 0)

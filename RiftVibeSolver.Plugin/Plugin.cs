@@ -19,8 +19,7 @@ public class Plugin : BaseUnityPlugin {
     public new static ManualLogSource Logger { get; private set; }
 
     private static bool shouldRecordEvents;
-    private static int bpm;
-    private static double[] beatTimings;
+    private static BeatData beatData;
     private static readonly List<Hit> hits = new();
 
     private void Awake() {
@@ -78,38 +77,38 @@ public class Plugin : BaseUnityPlugin {
         if (!shouldRecordEvents || !RiftUtilityHelper.IsInputSuccess(hitData.InputRating))
             return;
 
+        var beatmap = rrStageController.BeatmapPlayer._activeBeatmap;
+        float hitWindow = rrStageController.BeatmapPlayer.ActiveInputRatingsDefinition.AfterBeatHitWindow;
+
+        if (beatmap != null)
+            beatData ??= new BeatData(beatmap.bpm, beatmap.beatDivisions, hitWindow, beatmap.BeatTimings.ToArray());
+
+        if (beatData == null)
+            return;
+
         var stageInputRecord = rrStageController._stageInputRecord;
         int comboMultiplier = stageInputRecord._stageScoringDefinition.GetComboMultiplier(stageInputRecord.CurrentComboCount);
-        var beatmap = rrStageController._beatmapPlayer._activeBeatmap;
+        var timestamp = beatData.GetTimestampFromBeat(hitData.TargetBeat);
 
-        if (beatmap != null) {
-            bpm = beatmap.bpm;
-            beatTimings ??= beatmap.BeatTimings.ToArray();
-        }
-
-        double time = Util.GetTimeFromBeat(bpm, beatTimings, hitData.TargetBeat);
-
-        hits.Add(new Hit(new Timestamp(time, hitData.TargetBeat), inputScore * comboMultiplier, false));
-
-        // Logger.LogInfo($"Gained {totalScore} points at time {time:F}, beat {targetBeatNumber:F}");
+        hits.Add(new Hit(timestamp, inputScore * comboMultiplier, false));
     }
 
     private static void OnVibeChainSuccess(RRStageController rrStageController, RREnemyController.EnemyHitData hitData) {
         if (!shouldRecordEvents)
             return;
 
-        var beatmap = rrStageController._beatmapPlayer._activeBeatmap;
+        var beatmap = rrStageController.BeatmapPlayer._activeBeatmap;
+        float hitWindow = rrStageController.BeatmapPlayer.ActiveInputRatingsDefinition.AfterBeatHitWindow;
 
-        if (beatmap != null) {
-            bpm = beatmap.bpm;
-            beatTimings ??= beatmap.BeatTimings.ToArray();
-        }
+        if (beatmap != null)
+            beatData ??= new BeatData(beatmap.bpm, beatmap.beatDivisions, hitWindow, beatmap.BeatTimings.ToArray());
 
-        double time = Util.GetTimeFromBeat(bpm, beatTimings, hitData.TargetBeat);
+        if (beatData == null)
+            return;
 
-        hits.Add(new Hit(new Timestamp(time, hitData.TargetBeat), 0, true));
+        var timestamp = beatData.GetTimestampFromBeat(hitData.TargetBeat);
 
-        // Logger.LogInfo($"Gained Vibe at time {time:F}, beat {beat:F}");
+        hits.Add(new Hit(timestamp, 0, true));
     }
 
     private static void RRStageController_BeginPlay(Action<RRStageController> beginPlay, RRStageController rrStageController) {
@@ -123,6 +122,7 @@ public class Plugin : BaseUnityPlugin {
 
         Logger.LogInfo($"Begin playing {rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName}");
         hits.Clear();
+        beatData = null;
         shouldRecordEvents = true;
     }
 
@@ -137,14 +137,17 @@ public class Plugin : BaseUnityPlugin {
         Logger.LogInfo("Completed stage");
         hits.Sort();
 
-        var newHits = MergeHits();
-        var data = new SolverData(bpm, beatTimings, newHits.ToArray());
-        string name = rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName;
+        if (beatData != null) {
+            var newHits = MergeHits();
+            var data = new SolverData(beatData, newHits.ToArray());
+            string name = rrStageController._stageFlowUiController._stageContextInfo.StageDisplayName;
 
-        WriteEventData(name, data);
-        WriteVibeData(name, data);
+            WriteEventData(name, data);
+            WriteVibeData(name, data);
+        }
 
         hits.Clear();
+        beatData = null;
         shouldRecordEvents = false;
     }
 
