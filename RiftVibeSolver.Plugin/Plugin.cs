@@ -6,6 +6,7 @@ using BepInEx.Logging;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using RhythmRift;
+using RhythmRift.Enemies;
 using RiftVibeSolver.Solver;
 using Shared;
 using Shared.Pins;
@@ -14,7 +15,7 @@ using Shared.SceneLoading.Payloads;
 
 namespace RiftVibeSolver.Plugin;
 
-[BepInPlugin("programmatic.riftVibeSolver", "RiftVibeSolver", "1.2.0.0")]
+[BepInPlugin("programmatic.riftVibeSolver", "RiftVibeSolver", "1.2.1.0")]
 public class Plugin : BaseUnityPlugin {
     public new static ManualLogSource Logger { get; private set; }
 
@@ -29,6 +30,7 @@ public class Plugin : BaseUnityPlugin {
         typeof(RRStageController).CreateMethodHook(nameof(RRStageController.BeginPlay), RRStageController_BeginPlay);
         typeof(RRStageController).CreateMethodHook(nameof(RRStageController.ShowResultsScreen), RRStageController_ShowResultsScreen);
         typeof(RRStageController).CreateILHook("ProcessHitData", RRStageController_ProcessHitData_IL);
+        typeof(RRStageController).CreateILHook(nameof(RRStageController.HandleKilledBoundEnemy), RRStageController_HandleKilledBoundEnemy_IL);
     }
 
     private static List<Hit> MergeHits() {
@@ -73,17 +75,23 @@ public class Plugin : BaseUnityPlugin {
         Logger.LogInfo($"Written event data to {path}");
     }
 
-    private static void OnRecordInput(RRStageController rrStageController, RREnemyController.EnemyHitData hitData, int inputScore) {
-        if (!shouldRecordEvents || !RiftUtilityHelper.IsInputSuccess(hitData.InputRating))
-            return;
+    private static bool TryGetBeatData(RRStageController rrStageController) {
+        if (beatData != null)
+            return true;
 
         var beatmap = rrStageController.BeatmapPlayer._activeBeatmap;
         float hitWindow = rrStageController.BeatmapPlayer.ActiveInputRatingsDefinition.AfterBeatHitWindow;
 
-        if (beatmap != null)
-            beatData ??= new BeatData(beatmap.bpm, beatmap.beatDivisions, hitWindow, beatmap.BeatTimings.ToArray());
+        if (beatmap == null)
+            return false;
 
-        if (beatData == null)
+        beatData = new BeatData(beatmap.bpm, beatmap.beatDivisions, hitWindow, beatmap.BeatTimings.ToArray());
+
+        return true;
+    }
+
+    private static void OnRecordInput(RRStageController rrStageController, RREnemyController.EnemyHitData hitData, int inputScore) {
+        if (!shouldRecordEvents || !RiftUtilityHelper.IsInputSuccess(hitData.InputRating) || !TryGetBeatData(rrStageController))
             return;
 
         var stageInputRecord = rrStageController._stageInputRecord;
@@ -93,22 +101,18 @@ public class Plugin : BaseUnityPlugin {
         hits.Add(new Hit(timestamp, inputScore * comboMultiplier, false));
     }
 
-    private static void OnVibeChainSuccess(RRStageController rrStageController, RREnemyController.EnemyHitData hitData) {
-        if (!shouldRecordEvents)
-            return;
+    private static void OnVibeChainSuccessFromHit(RRStageController rrStageController, RREnemyController.EnemyHitData hitData)
+        => OnVibeChainSuccess(rrStageController, hitData.TargetBeat);
 
-        var beatmap = rrStageController.BeatmapPlayer._activeBeatmap;
-        float hitWindow = rrStageController.BeatmapPlayer.ActiveInputRatingsDefinition.AfterBeatHitWindow;
+    private static void OnVibeChainSuccessFromKill(RRStageController rrStageController, IRREnemyDataAccessor boundEnemy) {
+        var enemy = (RREnemy) boundEnemy;
 
-        if (beatmap != null)
-            beatData ??= new BeatData(beatmap.bpm, beatmap.beatDivisions, hitWindow, beatmap.BeatTimings.ToArray());
+        OnVibeChainSuccess(rrStageController, enemy.TargetHitBeatNumber + Math.Max(0, enemy.EnemyLength - 1));
+    }
 
-        if (beatData == null)
-            return;
-
-        var timestamp = beatData.GetTimestampFromBeat(hitData.TargetBeat);
-
-        hits.Add(new Hit(timestamp, 0, true));
+    private static void OnVibeChainSuccess(RRStageController rrStageController, float beat) {
+        if (shouldRecordEvents && TryGetBeatData(rrStageController))
+            hits.Add(new Hit(beatData.GetTimestampFromBeat(beat), 0, true));
     }
 
     private static void RRStageController_BeginPlay(Action<RRStageController> beginPlay, RRStageController rrStageController) {
@@ -165,6 +169,16 @@ public class Plugin : BaseUnityPlugin {
 
         cursor.Emit(OpCodes.Ldarg_0);
         cursor.Emit(OpCodes.Ldloc_S, (byte) 22);
-        cursor.EmitCall(OnVibeChainSuccess);
+        cursor.EmitCall(OnVibeChainSuccessFromHit);
+    }
+
+    private static void RRStageController_HandleKilledBoundEnemy_IL(ILContext il) {
+        var cursor = new ILCursor(il);
+
+        cursor.GotoNext(MoveType.After, instr => instr.MatchCall<RRStageController>(nameof(RRStageController.VibeChainSuccess)));
+
+        cursor.Emit(OpCodes.Ldarg_0);
+        cursor.Emit(OpCodes.Ldarg_1);
+        cursor.EmitCall(OnVibeChainSuccessFromKill);
     }
 }

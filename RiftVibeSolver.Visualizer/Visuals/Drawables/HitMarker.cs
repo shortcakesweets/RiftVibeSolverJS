@@ -24,7 +24,7 @@ public class HitMarker : Drawable {
         var span = visualizer.CurrentSpan;
         bool isInSpan = span.HasValue && index >= span.Value.StartIndex && index < span.Value.EndIndex;
 
-        if (y > 0f)
+        if (y < 1f)
             graphics.FillRectangle(isInSpan ? Brushes.Red : Brushes.White, panel.TimeToX(Start) - 3, panel.ValueToY(y) - 3, 7, 7);
     }
 }
