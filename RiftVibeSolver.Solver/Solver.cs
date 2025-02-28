@@ -388,7 +388,7 @@ public static class Solver {
                 if (nextActivation.StartIndex <= firstVibeIndex)
                     break;
 
-                if (nextStrategy.Activation.VibesUsed == (activation.StartIndex <= secondVibeIndex ? 1 : 2) && nextStrategy.Score == bestNextScore)
+                if (nextStrategy.Activation.VibesUsed == (nextActivation.StartIndex <= secondVibeIndex ? 1 : 2) && nextStrategy.Score == bestNextScore)
                     bestNextStrategies.Add(nextStrategy);
             }
 

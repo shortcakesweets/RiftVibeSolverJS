@@ -15,7 +15,7 @@ using Shared.SceneLoading.Payloads;
 
 namespace RiftVibeSolver.Plugin;
 
-[BepInPlugin("programmatic.riftVibeSolver", "RiftVibeSolver", "1.2.1.0")]
+[BepInPlugin("programmatic.riftVibeSolver", "RiftVibeSolver", "1.2.2.0")]
 public class Plugin : BaseUnityPlugin {
     public new static ManualLogSource Logger { get; private set; }
 
