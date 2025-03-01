@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using RiftEventCapture.Common;
 
 namespace RiftVibeSolver.Solver;
 
@@ -7,7 +8,7 @@ public static class Solver {
     private const double VIBE_LENGTH = 5d;
 
     public static List<Activation> Solve(SolverData data, out int totalScore) {
-        if (data.Hits.Length == 0) {
+        if (data.Hits.Count == 0) {
             totalScore = 0;
 
             return new List<Activation>();
@@ -43,10 +44,10 @@ public static class Solver {
         var startTimestamp = beatData.GetTimestampFromTime(startTime);
         int startIndex = 0;
 
-        while (startIndex < hits.Length && hits[startIndex].Time.Time < startTime)
+        while (startIndex < hits.Count && hits[startIndex].Time.Time < startTime)
             startIndex++;
 
-        if (startIndex < hits.Length)
+        if (startIndex < hits.Count)
             return GetSpanStartingAt(data, startTimestamp, startIndex, vibesUsed);
 
         double endTime = startTime + vibesUsed * VIBE_LENGTH;
@@ -58,7 +59,7 @@ public static class Solver {
         var beatData = data.BeatData;
         var hits = data.Hits;
         var endTimestamp = beatData.GetTimestampFromTime(endTime);
-        int endIndex = hits.Length;
+        int endIndex = hits.Count;
 
         while (endIndex > 0 && hits[endIndex - 1].Time.Time >= endTime)
             endIndex--;
@@ -109,7 +110,7 @@ public static class Solver {
         double endTime = GetMaxEndTime();
         int endIndex = startIndex;
 
-        while (endIndex < hits.Length) {
+        while (endIndex < hits.Count) {
             var endHit = hits[endIndex];
 
             if (endHit.Time.Time >= endTime)
@@ -135,7 +136,7 @@ public static class Solver {
 
         double GetMaxEndTime() {
             double vibeEndBeat = beatData.GetBeatFromTime(vibeEndTime);
-            double hitWindowInBeats = beatData.HitWindow / beatData.GetBeatLengthAtTime(vibeEndTime);
+            double hitWindowInBeats = 0.175d / beatData.GetBeatLengthAtTime(vibeEndTime);
             double maxEndBeat = vibeEndBeat + hitWindowInBeats - Math.Floor(hitWindowInBeats * beatData.BeatDivisions) / beatData.BeatDivisions;
 
             return beatData.GetTimeFromBeat(maxEndBeat);
@@ -179,16 +180,16 @@ public static class Solver {
         var hits = data.Hits;
         var beatData = data.BeatData;
         double vibeZeroTime = beatData.GetTimeFromBeat(currentBeat);
-        int endIndex = hits.Length;
+        int endIndex = hits.Count;
 
         while (endIndex > 0 && hits[endIndex - 1].Time.Time >= vibeZeroTime)
             endIndex--;
 
-        double hitWindowInBeats = beatData.HitWindow / beatData.GetBeatLengthForBeat(currentBeat - 1);
+        double hitWindowInBeats = 0.175d / beatData.GetBeatLengthForBeat(currentBeat - 1);
         double endBeat = currentBeat + hitWindowInBeats - Math.Floor(hitWindowInBeats * beatData.BeatDivisions) / beatData.BeatDivisions;
         double endTime = beatData.GetTimeFromBeat(endBeat);
 
-        if (endIndex < hits.Length && hits[endIndex].Time.Time < endTime) {
+        if (endIndex < hits.Count && hits[endIndex].Time.Time < endTime) {
             endTime = hits[endIndex].Time.Time;
             endIndex++;
         }
@@ -202,7 +203,7 @@ public static class Solver {
         int minEndBeat = endIndex > 0 ? (int) beatData.GetBeatFromTime(hits[endIndex - 1].Time.Time) : 1;
 
         for (int endBeat = (int) beatData.GetBeatFromTime(endTime.Time); endBeat >= minEndBeat; endBeat--) {
-            double hitWindowInBeats = beatData.HitWindow / beatData.GetBeatLengthForBeat(endBeat);
+            double hitWindowInBeats = 0.175d / beatData.GetBeatLengthForBeat(endBeat);
             double vibeEndBeat = endTime.Beat - hitWindowInBeats + Math.Floor(hitWindowInBeats * beatData.BeatDivisions) / beatData.BeatDivisions;
             double currentTime = beatData.GetTimeFromBeat(vibeEndBeat);
 
@@ -220,7 +221,7 @@ public static class Solver {
         var hits = data.Hits;
         var spans = new List<ActivationSpan>();
 
-        for (int i = 0; i < hits.Length; i++)
+        for (int i = 0; i < hits.Count; i++)
             spans.Add(GetSpanStartingAt(data, hits[i].Time, i, vibesUsed));
 
         spans.Sort();
@@ -233,12 +234,12 @@ public static class Solver {
         var beatData = data.BeatData;
         var spans = new List<ActivationSpan>();
 
-        for (int endIndex = 0; endIndex < hits.Length; endIndex++)
+        for (int endIndex = 0; endIndex < hits.Count; endIndex++)
             GetSpansEndingBefore(spans, data, hits[endIndex].Time, endIndex, vibesUsed);
 
-        double[] beatTimings = beatData.BeatTimings;
+        var beatTimings = beatData.BeatTimings;
 
-        for (int i = 2; i < beatTimings.Length; i++) {
+        for (int i = 2; i < beatTimings.Count; i++) {
             if (beatData.GetBeatLengthForBeat(i - 1) != beatData.GetBeatLengthForBeat(i))
                 GetSpansWhereVibeHitsZeroBeforeBeat(spans, data, i, vibesUsed);
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
+using RiftEventCapture.Common;
 using RiftVibeSolver.Solver;
 
 namespace RiftVibeSolver.Visualizer;
@@ -68,7 +69,7 @@ public class Visualizer {
     }
 
     private void LoadEvents(string path) {
-        data = SolverData.LoadFromFile(path);
+        data = new SolverData(CaptureResult.LoadFromFile(path));
         DrawEvents();
     }
 
@@ -83,7 +84,7 @@ public class Visualizer {
 
         panel.AddDrawable(new BeatGrid(0f, 1f, 7, 4, 60d / beatData.BPM, beatData.BeatTimings));
 
-        for (int i = 0; i < data.Hits.Length; i++) {
+        for (int i = 0; i < data.Hits.Count; i++) {
             var hit = data.Hits[i];
 
             panel.AddDrawable(new HitMarker(hit.Time.Time, 1f - hit.Score / 6660f, i, hit.GivesVibe, this));

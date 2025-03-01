@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
 
 namespace RiftVibeSolver.Visualizer;
 
@@ -10,9 +11,9 @@ public class BeatGrid : Drawable {
     private readonly float horizontalBars;
     private readonly int ticksPerMajorTick;
     private readonly double beatLength;
-    private readonly double[] beatTimings;
+    private readonly IReadOnlyList<double> beatTimings;
 
-    public BeatGrid(float bottom, float top, float horizontalBars, int ticksPerMajorTick, double beatLength, double[] beatTimings) : base(0d, double.PositiveInfinity, DrawLayer.Grid) {
+    public BeatGrid(float bottom, float top, float horizontalBars, int ticksPerMajorTick, double beatLength, IReadOnlyList<double> beatTimings) : base(0d, double.PositiveInfinity, DrawLayer.Grid) {
         this.top = top;
         this.bottom = bottom;
         this.horizontalBars = horizontalBars;
@@ -28,12 +29,12 @@ public class BeatGrid : Drawable {
         for (int i = 0;; i++) {
             double time;
 
-            if (beatTimings.Length <= 1)
+            if (beatTimings.Count <= 1)
                 time = i * beatLength;
-            else if (i < beatTimings.Length)
+            else if (i < beatTimings.Count)
                 time = beatTimings[i];
             else
-                time = beatTimings[beatTimings.Length - 1] + (i - (beatTimings.Length - 1)) * (beatTimings[beatTimings.Length - 1] - beatTimings[beatTimings.Length - 2]);
+                time = beatTimings[beatTimings.Count - 1] + (i - (beatTimings.Count - 1)) * (beatTimings[beatTimings.Count - 1] - beatTimings[beatTimings.Count - 2]);
 
             if (time < panel.Scroll)
                 continue;

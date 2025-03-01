@@ -1,3 +1,5 @@
+using RiftEventCapture.Common;
+
 namespace RiftVibeSolver.Solver;
 
 public readonly struct VibePathSegment {

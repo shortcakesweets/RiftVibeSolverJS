@@ -1,4 +1,5 @@
 ﻿using System;
+using RiftEventCapture.Common;
 
 namespace RiftVibeSolver.Solver;
 
