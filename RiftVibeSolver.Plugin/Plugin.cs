@@ -21,14 +21,17 @@ public class Plugin : BaseUnityPlugin {
 
     private static void WriteVibeData(string name, SolverData data) {
         var activations = Solver.Solver.Solve(data, out int score);
+        string directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RiftVibeSolver");
+
+        Directory.CreateDirectory(directory);
 
         string path;
         int num = 0;
 
         do {
-            path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "RiftVibeSolver", $"{name}_{num}.bin");
+            path = Path.Combine(directory, $"{name}_{num}.txt");
             num++;
-        } while (!File.Exists(path));
+        } while (File.Exists(path));
 
         using var writer = new StreamWriter(File.Create(path));
 

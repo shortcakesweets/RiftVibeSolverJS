@@ -22,7 +22,7 @@ public class SolverData {
 
             switch (riftEvent.EventType) {
                 case EventType.EnemyHit:
-                    currentScore += riftEvent.BaseScore;
+                    currentScore += riftEvent.BaseMultiplier * riftEvent.BaseScore;
                     break;
                 case EventType.VibeGained:
                     currentGivesVibe = true;
@@ -35,6 +35,8 @@ public class SolverData {
                 continue;
 
             Hits.Add(new Hit(riftEvent.TargetTime, currentScore, currentGivesVibe));
+            currentScore = 0;
+            currentGivesVibe = false;
         }
     }
 
