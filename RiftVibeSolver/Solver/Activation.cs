@@ -1,7 +1,7 @@
 ﻿using System;
 using RiftEventCapture.Common;
 
-namespace RiftVibeSolver.Solver;
+namespace RiftVibeSolver;
 
 public class Activation : IComparable<Activation> {
     public readonly Timestamp StartTime;
@@ -23,7 +23,6 @@ public class Activation : IComparable<Activation> {
     }
 
     public override string ToString() => $"Beat {StartTime.Beat:F} -> {EndTime.Beat:F} (-{(int) (1000d * Tolerance)}ms) [{VibesUsed} vibe{(VibesUsed > 1 ? "s" : "")} -> {Score} points]";
-
 
     public int CompareTo(Activation other) {
         int timeComparison = StartTime.Time.CompareTo(other.StartTime.Time);

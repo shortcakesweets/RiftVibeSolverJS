@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using RiftEventCapture.Common;
 
-namespace RiftVibeSolver.Solver;
+namespace RiftVibeSolver;
 
 public static class Solver {
     private const double VIBE_LENGTH = 5d;

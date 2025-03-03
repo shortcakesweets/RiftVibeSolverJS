@@ -1,7 +1,7 @@
 ﻿using System;
 using RiftEventCapture.Common;
 
-namespace RiftVibeSolver.Solver;
+namespace RiftVibeSolver;
 
 public readonly struct Hit : IComparable<Hit> {
     public readonly Timestamp Time;

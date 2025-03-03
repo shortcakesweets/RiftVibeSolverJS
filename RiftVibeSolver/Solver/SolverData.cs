@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using RiftEventCapture.Common;
 
-namespace RiftVibeSolver.Solver;
+namespace RiftVibeSolver;
 
 public class SolverData {
     public readonly BeatData BeatData;

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using RiftEventCapture.Common;
-using RiftVibeSolver.Solver;
 
 namespace RiftVibeSolver.Visualizer;
 
@@ -43,7 +42,7 @@ public class Visualizer {
         if (data == null)
             return;
 
-        CurrentSpan = Solver.Solver.GetSpanStartingAt(data, time, vibesUsed);
+        CurrentSpan = Solver.GetSpanStartingAt(data, time, vibesUsed);
 
         var hits = data.Hits;
         int score = 0;
@@ -53,7 +52,7 @@ public class Visualizer {
 
         currentSpanLabel.SetLabel($"Beat {CurrentSpan.Value.StartTime.Beat:F}, {score} points");
 
-        var path = Solver.Solver.GetVibePath(data, CurrentSpan.Value, vibesUsed);
+        var path = Solver.GetVibePath(data, CurrentSpan.Value, vibesUsed);
         var points = new List<PointD>();
 
         foreach (var segment in path) {
@@ -90,8 +89,8 @@ public class Visualizer {
             panel.AddDrawable(new HitMarker(hit.Time.Time, 1f - hit.Score / 6660f, i, hit.GivesVibe, this));
         }
 
-        var singleVibeActivations = Solver.Solver.GetAllActivations(data, 1);
-        var doubleVibeActivations = Solver.Solver.GetAllActivations(data, 2);
+        var singleVibeActivations = Solver.GetAllActivations(data, 1);
+        var doubleVibeActivations = Solver.GetAllActivations(data, 2);
 
         if (singleVibeActivations.Count == 0 && doubleVibeActivations.Count == 0) {
             panel.Redraw();
@@ -124,7 +123,7 @@ public class Visualizer {
 
         panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, ONE_VIBE_BRUSH, points.ToArray()));
 
-        var bestActivations = Solver.Solver.GetBestActivations(data, allActivations, out int totalScore);
+        var bestActivations = Solver.GetBestActivations(data, allActivations, out int totalScore);
 
         panel.AddDrawable(new Label(0f, 0f, $"Optimal bonus: {totalScore}"));
 

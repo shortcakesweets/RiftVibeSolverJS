@@ -1,7 +1,7 @@
 ﻿using System;
 using RiftEventCapture.Common;
 
-namespace RiftVibeSolver.Solver;
+namespace RiftVibeSolver;
 
 public readonly struct ActivationSpan : IComparable<ActivationSpan> {
     public readonly Timestamp StartTime;

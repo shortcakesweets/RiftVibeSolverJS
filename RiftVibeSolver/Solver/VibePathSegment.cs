@@ -1,6 +1,6 @@
 using RiftEventCapture.Common;
 
-namespace RiftVibeSolver.Solver;
+namespace RiftVibeSolver;
 
 public readonly struct VibePathSegment {
     public readonly Timestamp StartTime;
