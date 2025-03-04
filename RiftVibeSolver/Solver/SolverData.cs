@@ -18,13 +18,18 @@ public class SolverData {
         if (riftEvents.Count == 0)
             return;
 
-        var currentTime = riftEvents[0].TargetTime;
+        var currentTime = new Timestamp(double.MinValue, double.MinValue);
         int currentScore = 0;
         bool currentGivesVibe = false;
 
         foreach (var riftEvent in riftEvents) {
+            if (riftEvent.EventType is not (EventType.EnemyHit or EventType.VibeGained))
+                continue;
+
             if (riftEvent.TargetTime.Time > currentTime.Time) {
-                Hits.Add(new Hit(currentTime, currentScore, currentGivesVibe));
+                if (currentScore > 0 || currentGivesVibe)
+                    Hits.Add(new Hit(currentTime, currentScore, currentGivesVibe));
+
                 currentTime = riftEvent.TargetTime;
                 currentScore = 0;
                 currentGivesVibe = false;
@@ -37,12 +42,11 @@ public class SolverData {
                 case EventType.VibeGained:
                     currentGivesVibe = true;
                     break;
-                default:
-                    continue;
             }
         }
 
-        Hits.Add(new Hit(currentTime, currentScore, currentGivesVibe));
+        if (currentScore > 0 || currentGivesVibe)
+            Hits.Add(new Hit(currentTime, currentScore, currentGivesVibe));
     }
 
     public int GetNextVibe(int index) {
