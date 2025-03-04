@@ -13,12 +13,22 @@ public class SolverData {
         BeatData = captureResult.BeatData;
         Hits = new List<Hit>();
 
-        int currentScore = 0;
-        bool currentGivesVibe = false;
         var riftEvents = captureResult.RiftEvents;
 
-        for (int i = 0; i < riftEvents.Count; i++) {
-            var riftEvent = riftEvents[i];
+        if (riftEvents.Count == 0)
+            return;
+
+        var currentTime = riftEvents[0].TargetTime;
+        int currentScore = 0;
+        bool currentGivesVibe = false;
+
+        foreach (var riftEvent in riftEvents) {
+            if (riftEvent.TargetTime.Time > currentTime.Time) {
+                Hits.Add(new Hit(currentTime, currentScore, currentGivesVibe));
+                currentTime = riftEvent.TargetTime;
+                currentScore = 0;
+                currentGivesVibe = false;
+            }
 
             switch (riftEvent.EventType) {
                 case EventType.EnemyHit:
@@ -30,14 +40,9 @@ public class SolverData {
                 default:
                     continue;
             }
-
-            if (i < riftEvents.Count - 1 && riftEvent.TargetTime.Time == riftEvents[i + 1].TargetTime.Time)
-                continue;
-
-            Hits.Add(new Hit(riftEvent.TargetTime, currentScore, currentGivesVibe));
-            currentScore = 0;
-            currentGivesVibe = false;
         }
+
+        Hits.Add(new Hit(currentTime, currentScore, currentGivesVibe));
     }
 
     public int GetNextVibe(int index) {
