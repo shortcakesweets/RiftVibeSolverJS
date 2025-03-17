@@ -21,8 +21,8 @@ public class HitMarker : Drawable {
         if (givesVibe)
             graphics.DrawLine(Pens.Gold, drawX, panel.ValueToY(1f), drawX, panel.ValueToY(0f));
 
-        var span = visualizer.CurrentSpan;
-        bool isInSpan = span.HasValue && index >= span.Value.StartIndex && index < span.Value.EndIndex;
+        var path = visualizer.CurrentPath;
+        bool isInSpan = path != null && index >= path.StartIndex && index < path.EndIndex;
 
         if (y < 1f)
             graphics.FillRectangle(isInSpan ? Brushes.Red : Brushes.White, panel.TimeToX(Start) - 3, panel.ValueToY(y) - 3, 7, 7);

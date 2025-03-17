@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace RiftVibeSolver;
+namespace RiftVibeSolver.Common;
 
-public readonly struct BestNextActivations {
+internal readonly struct BestNextActivations {
     public readonly int BestNextValue;
     public readonly List<int> BestNextSingleVibeActivations;
     public readonly List<int> BestNextDoubleVibeActivations;

@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace RiftVibeSolver;
+namespace RiftVibeSolver.Common;
 
-public readonly struct ActivationSpan : IComparable<ActivationSpan> {
+internal readonly struct ActivationSpan : IComparable<ActivationSpan> {
     public readonly double StartTime;
     public readonly int StartIndex;
     public readonly int EndIndex;

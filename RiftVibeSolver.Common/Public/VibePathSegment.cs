@@ -1,6 +1,4 @@
-using RiftEventCapture.Common;
-
-namespace RiftVibeSolver;
+namespace RiftVibeSolver.Common;
 
 public readonly struct VibePathSegment {
     public readonly double StartTime;

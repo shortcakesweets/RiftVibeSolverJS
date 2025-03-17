@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using RiftEventCapture.Common;
+using RiftVibeSolver.Common;
 
 namespace RiftVibeSolver.Visualizer;
 
@@ -13,7 +14,7 @@ public class Visualizer {
     private readonly GraphicsPanel panel;
     private readonly List<Drawable> vibePathDrawables = new();
 
-    public ActivationSpan? CurrentSpan { get; private set; }
+    public VibePath CurrentPath { get; private set; }
 
     private readonly OpenFileDialog openFileDialog;
     private readonly Label currentSpanLabel = new(0f, 20f, "");
@@ -42,20 +43,12 @@ public class Visualizer {
         if (data == null)
             return;
 
-        CurrentSpan = Solver.GetSpanStartingAt(data, time, vibesUsed);
+        CurrentPath = Solver.GetVibePath(data, time, vibesUsed);
+        currentSpanLabel.SetLabel($"Beat {data.GetBeatFromTime(CurrentPath.StartTime):F}, {CurrentPath.Score} points");
 
-        var hits = data.Hits;
-        int score = 0;
-
-        for (int i = CurrentSpan.Value.StartIndex; i < CurrentSpan.Value.EndIndex; i++)
-            score += hits[i].Score;
-
-        currentSpanLabel.SetLabel($"Beat {data.BeatData.GetBeatFromTime(CurrentSpan.Value.StartTime):F}, {score} points");
-
-        var path = Solver.GetVibePath(data, CurrentSpan.Value, vibesUsed);
         var points = new List<PointD>();
 
-        foreach (var segment in path) {
+        foreach (var segment in CurrentPath.Segments) {
             points.Add(new PointD(segment.StartTime, segment.StartVibe));
             points.Add(new PointD(segment.EndTime, segment.EndVibe));
         }
@@ -68,20 +61,20 @@ public class Visualizer {
     }
 
     private void LoadEvents(string path) {
-        data = SolverData.CreateFromCaptureResult(CaptureResult.LoadFromFile(path));
+        var captureResult = CaptureResult.LoadFromFile(path);
+        var beatData = captureResult.BeatData;
+
+        data = new SolverData(beatData.BPM, beatData.BeatDivisions, new List<double>(beatData.BeatTimings), Hit.MergeHits(GetHitsFromCaptureResult(captureResult)));
         DrawEvents();
     }
 
     private void DrawEvents() {
-        CurrentSpan = null;
+        CurrentPath = null;
         currentSpanLabel.SetLabel("");
         vibePathDrawables.Clear();
         panel.Clear();
         panel.AddDrawable(currentSpanLabel);
-
-        var beatData = data.BeatData;
-
-        panel.AddDrawable(new BeatGrid(0f, 1f, 7, 4, 60d / beatData.BPM, beatData.BeatTimings));
+        panel.AddDrawable(new BeatGrid(0f, 1f, 7, 4, 60d / data.BPM, data.BeatTimings));
 
         for (int i = 0; i < data.Hits.Count; i++) {
             var hit = data.Hits[i];
@@ -89,8 +82,9 @@ public class Visualizer {
             panel.AddDrawable(new HitMarker(hit.Time, 1f - hit.Score / 6660f, i, hit.GivesVibe, this));
         }
 
-        var singleVibeActivations = Solver.GetActivations(data, 1);
-        var doubleVibeActivations = Solver.GetActivations(data, 2);
+        var result = Solver.Solve(data);
+        var singleVibeActivations = result.SingleVibeActivations;
+        var doubleVibeActivations = result.DoubleVibeActivations;
 
         if (singleVibeActivations.Count == 0 && doubleVibeActivations.Count == 0) {
             panel.Redraw();
@@ -118,17 +112,37 @@ public class Visualizer {
             points.Add(new PointD(activation.MinStartTime, activation.Score));
 
         panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, ONE_VIBE_BRUSH, points.ToArray()));
-
-        var bestActivations = Solver.GetBestActivations(data, singleVibeActivations, doubleVibeActivations, out int totalScore);
-
-        panel.AddDrawable(new Label(0f, 0f, $"Optimal bonus: {totalScore}"));
+        panel.AddDrawable(new Label(0f, 0f, $"Optimal bonus: {result.TotalScore}"));
 
         var pairs = new List<(PointD, double)>();
+        var bestSingleVibeActivations = result.BestSingleVibeActivations;
+        var bestDoubleVibeActivations = result.BestDoubleVibeActivations;
+        var allBestActivations = new List<Activation>(bestSingleVibeActivations.Count + bestDoubleVibeActivations.Count);
 
-        foreach (var range in bestActivations)
-            pairs.Add((new PointD(range.StartTime, range.Score), range.EndTime));
+        allBestActivations.AddRange(bestSingleVibeActivations);
+        allBestActivations.AddRange(bestDoubleVibeActivations);
+        allBestActivations.Sort();
+
+        foreach (var activation in allBestActivations)
+            pairs.Add((new PointD(activation.MinStartTime, activation.Score), activation.MaxStartTime));
 
         panel.AddDrawable(new OptimalActivationMarkers(1f, 0f, 0f, maxScore, pairs));
         panel.Redraw();
+    }
+
+    private static IEnumerable<Hit> GetHitsFromCaptureResult(CaptureResult captureResult) {
+        foreach (var riftEvent in captureResult.RiftEvents) {
+            if (riftEvent.EventType is not (EventType.EnemyHit or EventType.VibeGained))
+                continue;
+
+            switch (riftEvent.EventType) {
+                case EventType.EnemyHit:
+                    yield return new Hit(riftEvent.TargetTime.Time, riftEvent.BaseMultiplier * riftEvent.BaseScore, false);
+                    break;
+                case EventType.VibeGained:
+                    yield return new Hit(riftEvent.TargetTime.Time, 0, true);
+                    break;
+            }
+        }
     }
 }
