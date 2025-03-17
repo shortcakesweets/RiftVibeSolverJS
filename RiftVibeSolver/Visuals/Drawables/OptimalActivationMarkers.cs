@@ -26,11 +26,11 @@ public class OptimalActivationMarkers : Drawable {
         int last = data.Count - 1;
 
         for (int i = 0; i < data.Count; i++) {
-            (var point, double length) = data[i];
+            (var point, double endTime) = data[i];
 
-            if (point.X - length < panel.Scroll)
+            if (point.X < panel.Scroll)
                 first = i;
-            else if (point.X > panel.RightBound) {
+            else if (endTime > panel.RightBound) {
                 last = i;
 
                 break;
@@ -40,9 +40,9 @@ public class OptimalActivationMarkers : Drawable {
         var rects = new RectangleF[last - first + 1];
 
         for (int i = first, j = 0; i <= last; i++, j++) {
-            (var point, double length) = data[i];
-            float startX = panel.TimeToX(point.X - length);
-            float width = panel.TimeToX(point.X) - startX;
+            (var point, double endTime) = data[i];
+            float startX = panel.TimeToX(point.X);
+            float width = panel.TimeToX(endTime) - startX;
             float y = panel.ValueToY(bottom + (top - bottom) * ((float) point.Y - min) / (max - min));
 
             if (width < 9f) {

@@ -50,14 +50,14 @@ public class Visualizer {
         for (int i = CurrentSpan.Value.StartIndex; i < CurrentSpan.Value.EndIndex; i++)
             score += hits[i].Score;
 
-        currentSpanLabel.SetLabel($"Beat {CurrentSpan.Value.StartTime.Beat:F}, {score} points");
+        currentSpanLabel.SetLabel($"Beat {data.BeatData.GetBeatFromTime(CurrentSpan.Value.StartTime):F}, {score} points");
 
         var path = Solver.GetVibePath(data, CurrentSpan.Value, vibesUsed);
         var points = new List<PointD>();
 
         foreach (var segment in path) {
-            points.Add(new PointD(segment.StartTime.Time, segment.StartVibe));
-            points.Add(new PointD(segment.EndTime.Time, segment.EndVibe));
+            points.Add(new PointD(segment.StartTime, segment.StartVibe));
+            points.Add(new PointD(segment.EndTime, segment.EndVibe));
         }
 
         var graph = new LineGraph(0f, 1f, 10f, 0f, points);
@@ -68,7 +68,7 @@ public class Visualizer {
     }
 
     private void LoadEvents(string path) {
-        data = new SolverData(CaptureResult.LoadFromFile(path));
+        data = SolverData.CreateFromCaptureResult(CaptureResult.LoadFromFile(path));
         DrawEvents();
     }
 
@@ -86,11 +86,11 @@ public class Visualizer {
         for (int i = 0; i < data.Hits.Count; i++) {
             var hit = data.Hits[i];
 
-            panel.AddDrawable(new HitMarker(hit.Time.Time, 1f - hit.Score / 6660f, i, hit.GivesVibe, this));
+            panel.AddDrawable(new HitMarker(hit.Time, 1f - hit.Score / 6660f, i, hit.GivesVibe, this));
         }
 
-        var singleVibeActivations = Solver.GetAllActivations(data, 1);
-        var doubleVibeActivations = Solver.GetAllActivations(data, 2);
+        var singleVibeActivations = Solver.GetActivations(data, 1);
+        var doubleVibeActivations = Solver.GetActivations(data, 2);
 
         if (singleVibeActivations.Count == 0 && doubleVibeActivations.Count == 0) {
             panel.Redraw();
@@ -98,39 +98,35 @@ public class Visualizer {
             return;
         }
 
-        var allActivations = new List<Activation>(singleVibeActivations);
         int maxScore = 0;
 
-        allActivations.AddRange(doubleVibeActivations);
-        allActivations.Sort();
+        foreach (var activation in singleVibeActivations)
+            maxScore = Math.Max(maxScore, activation.Score);
 
-        foreach (var activation in allActivations)
+        foreach (var activation in doubleVibeActivations)
             maxScore = Math.Max(maxScore, activation.Score);
 
         var points = new List<PointD>();
 
-        points.Add(new PointD(doubleVibeActivations[0].StartTime.Time - doubleVibeActivations[0].Tolerance, doubleVibeActivations[0].Score));
-
-        for (int i = 0; i < doubleVibeActivations.Count - 1; i++)
-            points.Add(new PointD(doubleVibeActivations[i].StartTime.Time, doubleVibeActivations[i + 1].Score));
+        foreach (var activation in doubleVibeActivations)
+            points.Add(new PointD(activation.MinStartTime, activation.Score));
 
         panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, TWO_VIBE_BRUSH, points.ToArray()));
         points.Clear();
-        points.Add(new PointD(singleVibeActivations[0].StartTime.Time - singleVibeActivations[0].Tolerance, singleVibeActivations[0].Score));
 
-        for (int i = 0; i < singleVibeActivations.Count - 1; i++)
-            points.Add(new PointD(singleVibeActivations[i].StartTime.Time, singleVibeActivations[i + 1].Score));
+        foreach (var activation in singleVibeActivations)
+            points.Add(new PointD(activation.MinStartTime, activation.Score));
 
         panel.AddDrawable(new BarGraph(1f, 0f, 0f, maxScore, ONE_VIBE_BRUSH, points.ToArray()));
 
-        var bestActivations = Solver.GetBestActivations(data, allActivations, out int totalScore);
+        var bestActivations = Solver.GetBestActivations(data, singleVibeActivations, doubleVibeActivations, out int totalScore);
 
         panel.AddDrawable(new Label(0f, 0f, $"Optimal bonus: {totalScore}"));
 
         var pairs = new List<(PointD, double)>();
 
-        foreach (var activation in bestActivations)
-            pairs.Add((new PointD(activation.StartTime.Time, activation.Score), activation.Tolerance));
+        foreach (var range in bestActivations)
+            pairs.Add((new PointD(range.StartTime, range.Score), range.EndTime));
 
         panel.AddDrawable(new OptimalActivationMarkers(1f, 0f, 0f, maxScore, pairs));
         panel.Redraw();
