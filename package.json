@@ -1,0 +1,13 @@
+{
+  "name": "riftvibesolverjs",
+  "version": "1.0.0",
+  "description": "This is a tool for visualizing the optimal Vibe activations for a chart in Rift of the Necrodancer",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
